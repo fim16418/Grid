@@ -4,7 +4,7 @@ Grid examples, www.github.com/fim16418/Grid
 
 Copyright (C) 2017
 
-Source code: peekPoke2.cpp
+Source code: ompThreads.cpp
 
 Author: Moritz Fink <fink.moritz@googlemail.com>
 
@@ -44,28 +44,21 @@ using namespace Grid;
 using namespace Grid::QCD;
 
 int main(int *argc, char ***argv)
-/* Test of peek & poke on a
- * LatticeSpinMatrix without
- * using the functions */
+/* Test of the thread
+ * manipulation via
+ * omp functions */
 {
     Grid_init(argc,argv);
 
-    //Set up random LatticeSpinMatrix
-    LatticeSpinMatrix spinMat(&Grid);
-    GridParallelRNG pRNG(&Grid);
-    pRNG.SeedFixedIntegers({1,2,3,4});
-    random(pRNG,spinMat);
+    std::cout << "#threads=" << omp_get_num_threads() << std::endl;
+    //#threads=1 because this is a sequential section
 
-    //Print spin of site 0
-    std::cout << spinMat._odata[0]._internal._internal[0][0]._internal << std::endl;
+    std::cout << "#maxThreads=" << omp_get_max_threads() << std::endl;
+    omp_set_num_threads(1);
+    std::cout << "#maxThreads=" << omp_get_max_threads() << std::endl;
 
-    //Set the spin of spinMat to 0
-    for(int i=0; i<spinMat._odata.size(); i++) {
-      spinMat._odata[i]._internal._internal[0][0]._internal = 0;
-    }
-
-    //Print spin of site 0 again
-    std::cout << spinMat._odata[0]._internal._internal[0][0]._internal << std::endl;
+    omp_set_num_threads(2);
+    std::cout << "#maxThreads=" << omp_get_max_threads() << std::endl;
 
     Grid_finalize();
 }
