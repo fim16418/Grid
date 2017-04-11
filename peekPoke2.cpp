@@ -44,8 +44,9 @@ using namespace Grid;
 using namespace Grid::QCD;
 
 int main(int *argc, char ***argv)
-/* Test of the peek & poke functions
- * on a LatticeSpinMatrix */
+/* Test of peek & poke on a
+ * LatticeSpinMatrix without
+ * using the functions */
 {
     Grid_init(argc,argv);
 
@@ -56,20 +57,15 @@ int main(int *argc, char ***argv)
     random(pRNG,spinMat);
 
     //Print spin of site 0
-    LatticeComplex result(&Grid);
-    result = peekSpin(spinMat,0,0);
-    std::cout << result[0] << std::endl;
-
-    //LatticeComplex which is zero on every site
-    LatticeComplex zero(&Grid);
-    std::cout << zero[0] << std::endl;
+    std::cout << spinMat._odata[0]._internal._internal[0][0]._internal << std::endl;
 
     //Set the spin of spinMat to 0
-    pokeSpin(spinMat,zero,0,0);
+    for(int i=0; i<spinMat._odata.size(); i++) {
+      spinMat._odata[i]._internal._internal[0][0]._internal = 0;
+    }
 
     //Print spin of site 0 again
-    result = peekSpin(spinMat,0,0);
-    std::cout << result[0] << std::endl;
+    std::cout << spinMat._odata[0]._internal._internal[0][0]._internal << std::endl;
 
     Grid_finalize();
 }
