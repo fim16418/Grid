@@ -43,11 +43,11 @@ using namespace std;
 using namespace Grid;
 using namespace Grid::QCD;
 
-int main(int *argc, char ***argv)
+int main(int *argc, char **argv)
 /* Test of the peek & poke functions
  * on a LatticeSpinMatrix */
 {
-    Grid_init(argc,argv);
+    Grid_init(&argc,&argv);
 
     //Set up random LatticeSpinMatrix
     LatticeSpinMatrix spinMat(&Grid);

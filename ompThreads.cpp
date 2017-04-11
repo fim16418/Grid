@@ -43,12 +43,12 @@ using namespace std;
 using namespace Grid;
 using namespace Grid::QCD;
 
-int main(int *argc, char ***argv)
+int main(int *argc, char **argv)
 /* Test of the thread
  * manipulation via
  * omp functions */
 {
-    Grid_init(argc,argv);
+    Grid_init(&argc,&argv);
 
     std::cout << "#threads=" << omp_get_num_threads() << std::endl;
     //#threads=1 because this is a sequential section

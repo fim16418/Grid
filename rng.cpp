@@ -4,7 +4,7 @@ Grid examples, www.github.com/fim16418/Grid
 
 Copyright (C) 2017
 
-Source code: gridThreads.cpp
+Source code: rng.cpp
 
 Author: Moritz Fink <fink.moritz@googlemail.com>
 
@@ -44,22 +44,25 @@ using namespace Grid;
 using namespace Grid::QCD;
 
 int main(int *argc, char **argv)
-/* Test of thread
- * manipulation via
- * the GRID functions */
+/* Demo for the use of the
+ * Random Number Generator (RNG)
+ * on a LatticePropagator */
 {
     Grid_init(&argc,&argv);
 
-    std::cout << "#threads=" << GridThread::GetThreads() << std::endl;
+    std::vector<int> latt_size   = GridDefaultLatt();
+    std::vector<int> simd_layout = GridDefaultSimd(Nd,vComplex::Nsimd());
+    std::vector<int> mpi_layout  = GridDefaultMpi();
+    GridCartesian Grid(latt_size,simd_layout,mpi_layout);
 
-    GridThread::SetThreads(2);
-    std::cout << "#threads=" << GridThread::GetThreads() << std::endl;
+    GridParallelRNG pRNG(&Grid);
+    pRNG.SeedFixedIntegers({1,2,3,4}); //fixed seed
+    //pRNG.SeedRandomDevice(); //random seed
 
-    GridThread::SetThreads(1);
-    std::cout << "#threads=" << GridThread::GetThreads() << std::endl;
+    LatticePropagator prop(&Grid);
+    random(pRNG,prop);
 
-    GridThread::SetThreads(2); //no effect, #threads cannot be increased
-    std::cout << "#threads=" << GridThread::GetThreads() << std::endl;
+    std::cout << prop[0] << std::endl;
 
     Grid_finalize();
 }
