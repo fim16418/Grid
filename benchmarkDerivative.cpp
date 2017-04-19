@@ -49,6 +49,8 @@ int nData;
 int nLoops;
 std::vector<int> latt_size;
 int nThreads;
+int mu;
+int length;
 
 bool overlapComms = false;
 
@@ -82,59 +84,66 @@ bool processCmdLineArgs(int argc, char ** argv)
   nLoops = 10;
   latt_size = {4,4,4,8};
   nThreads = omp_get_max_threads();
+  mu = 0;
+  length = 1;
 
   for(int i=1; i<argc; i++) {
     std::string option = std::string(argv[i]);
-    if(option == "--help") {
-      std::cout << "Available options:" << std::endl
-                << "  --nData    Sets the number of measurements" << std::endl
-                << "  --nLoops   Sets the number of loops per measurement" << std::endl
-                << "  --nThreads Sets the number of threads" << std::endl
-                << "  --lattice  Sets the lattice size (default: 4 4 4 8)" << std::endl;
-    }
-    else if(option == "--lattice") {
+    if(option == "--lattice") {
       if(i+5 == argc) { //--lattice must be last argument
         for(int j=0; j<4; j++) {
-          latt_size[j] = atoi(argv[i+j+1]);
+            latt_size[j] = atoi(argv[i+j+1]);
+          }
+          i+=4;
+        } else {
+          std::cerr << "--lattice x y z t must be the last option." << std::endl;
+          return false;
         }
-        i+=4;
-      } else {
-        std::cerr << "--lattice x y z t must be the last option." << std::endl;
-        return false;
+      } else if(option == "--nData") {
+        if(i+1 < argc) {
+          nData = atoi(argv[++i]);
+        } else {
+          std::cerr << "--nData option requires one argument." << std::endl;
+          return false;
+        }
+      } else if(option == "--nLoops") {
+        if(i+1 < argc) {
+          nLoops = atoi(argv[++i]);
+        } else {
+          std::cerr << "--nLoops option requires one argument." << std::endl;
+          return false;
+        }
+      } else if(option == "--nThreads") {
+        if(i+1 < argc) {
+          nThreads = atoi(argv[++i]);
+          omp_set_num_threads(nThreads);
+        } else {
+          std::cerr << "--nThreads option requires one argument." << std::endl;
+          return false;
+        }
+      } else if(option == "--mu") {
+        if(i+1 < argc) {
+          mu = atoi(argv[++i]);
+        } else {
+          std::cerr << "--mu option requires one argument." << std::endl;
+          return false;
+        }
+      } else if(option == "--length") {
+        if(i+1 < argc) {
+          length = atoi(argv[++i]);
+        } else {
+          std::cerr << "--length option requires one argument." << std::endl;
+          return false;
+        }
       }
     }
-    else if(option == "--nData") {
-      if(i+1 < argc) {
-        nData = atoi(argv[++i]);
-      } else {
-        std::cerr << "--nData option requires one argument." << std::endl;
-        return false;
-      }
-    }
-    else if(option == "--nLoops") {
-      if(i+1 < argc) {
-        nLoops = atoi(argv[++i]);
-      } else {
-        std::cerr << "--nLoops option requires one argument." << std::endl;
-        return false;
-      }
-    }
-    else if(option == "--nThreads") {
-      if(i+1 < argc) {
-        nThreads = atoi(argv[++i]);
-        omp_set_num_threads(nThreads);
-      } else {
-        std::cerr << "--nThreads option requires one argument." << std::endl;
-        return false;
-      }
-    }
+    std::cout << "Lattice = " << latt_size[0] << " " << latt_size[1] << " " << latt_size[2] << " " << latt_size[3] << std::endl
+              << "Measurements = " << nData << std::endl
+              << "Loops per measurement = " << nLoops << std::endl
+              << "Threads = " << omp_get_max_threads() << std::endl
+              << "Derivative in direction " << mu << " with length " << length << std::endl << std::endl;
+    return true;
   }
-  std::cout << "Lattice = " << latt_size[0] << " " << latt_size[1] << " " << latt_size[2] << " " << latt_size[3] << std::endl
-            << "Measurements = " << nData << std::endl
-            << "Loops per measurement = " << nLoops << std::endl
-            << "Threads = " << omp_get_max_threads() << std::endl << std::endl;
-  return true;
-}
 
 
 int main (int argc, char ** argv)
@@ -152,41 +161,33 @@ int main (int argc, char ** argv)
   GridCartesian               Grid(latt_size,simd_layout,mpi_layout);
 
   GridCartesian *UGrid = SpaceTimeGrid::makeFourDimGrid(latt_size,simd_layout,mpi_layout);
-  std::vector<LatticeColourMatrix> U(4,UGrid);
-
-  GridParallelRNG pRNG(&Grid);
-  pRNG.SeedFixedIntegers({1,2,3,4});
-  //pRNG.SeedRandomDevice();
+  std::vector<LatticeColourMatrix> U(Nd,UGrid);
 
   LatticeGaugeField Umu(&Grid);
-  for(int i0=0; i0<Umu._odata.size(); i0++) {
-  for(int i1=0; i1<Nd; i1++) {
-  for(int i2=0; i2<Nc; i2++) {
-  for(int i3=0; i3<Nc; i3++) {
-    Umu._odata[i0]._internal[i1]._internal._internal[i2][i3] = (i1*i2+i3+1)%5;
+  for(int i=0; i<Umu._odata.size(); i++) {
+  for(int dir=0; dir<Nd; dir++) {
+  for(int c1=0; c1<Nc; c1++) {
+  for(int c2=0; c2<Nc; c2++) {
+    Umu._odata[i]._internal[dir]._internal._internal[c1][c2] = dir+c1+c2;
   }}}}
 
-  for(int mu=0; mu<Nd; mu++) {
-    U[mu] = PeekIndex<LorentzIndex>(Umu,mu);
+  for(int dir=0; dir<Nd; dir++) {
+    U[dir] = PeekIndex<LorentzIndex>(Umu,dir);
   }
 
   Gamma gamma5(Gamma::Gamma5);
   LatticePropagator quark_propagator(&Grid);
-  random(pRNG,quark_propagator);
 
-  for(int i0=0; i0<quark_propagator._odata.size(); i0++) {
-  for(int i1=0; i1<Ns; i1++) {
-  for(int i2=0; i2<Ns; i2++) {
-  for(int i3=0; i3<Nc; i3++) {
-  for(int i4=0; i4<Nc; i4++) {
-    quark_propagator._odata[i0]._internal._internal[i1][i2]._internal[i3][i4] = 3.14;
+  for(int index=0; index<quark_propagator._odata.size(); index++) {
+  for(int s1=0; s1<Ns; s1++) {
+  for(int s2=0; s2<Ns; s2++) {
+  for(int c1=0; c1<Nc; c1++) {
+  for(int c2=0; c2<Nc; c2++) {
+    quark_propagator._odata[index]._internal._internal[s1][s2]._internal[c1][c2] = index+s1+s2+c1+c2;
   }}}}}
 
   LatticePropagator anti_quark = gamma5 * quark_propagator * gamma5;
   anti_quark = adj(anti_quark);
-
-  int mu = 0;
-  int length = 1;
 
   LatticeColourMatrix gField = U[mu];
 
@@ -212,3 +213,4 @@ int main (int argc, char ** argv)
 
   Grid_finalize();
 }
+

@@ -85,15 +85,8 @@ bool processCmdLineArgs(int argc, char ** argv)
 
   for(int i=1; i<argc; i++) {
     std::string option = std::string(argv[i]);
-    if(option == "--help") {
-      std::cout << "Available options:" << std::endl
-                << "  --nData    Sets the number of measurements" << std::endl
-                << "  --nLoops   Sets the number of loops per measurement" << std::endl
-                << "  --nThreads Sets the number of threads" << std::endl
-                << "  --lattice  Sets the lattice size (default: 4 4 4 8)" << std::endl;
-    }
-    else if(option == "--lattice") {
-      if(i+5 == argc) { //--lattice must be last argument
+    if(option == "--lattice") {
+      if(i+5 == argc) { //--lattice must be last option
         for(int j=0; j<4; j++) {
           latt_size[j] = atoi(argv[i+j+1]);
         }
