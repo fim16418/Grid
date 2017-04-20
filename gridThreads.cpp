@@ -6,7 +6,7 @@ Copyright (C) 2017
 
 Source code: gridThreads.cpp
 
-Author: Moritz Fink <fink.moritz@googlemail.com>
+Author: Moritz Fink <fink.moritz@gmail.com>
 
 This program uses the following library:
 
