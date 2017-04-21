@@ -49,6 +49,7 @@ int nData;
 int nLoops;
 std::vector<int> latt_size;
 int nThreads;
+std::string outFileName;
 
 bool overlapComms = false;
 
@@ -80,13 +81,14 @@ bool processCmdLineArgs(int argc, char ** argv)
 {
   nData  = 2;
   nLoops = 10;
-  latt_size = {4,4,4,8};
+  latt_size = {4,4,4,4};
   nThreads = omp_get_max_threads();
+  outFileName = "output.txt";
 
   for(int i=1; i<argc; i++) {
     std::string option = std::string(argv[i]);
     if(option == "--lattice") {
-      if(i+5 == argc) { //--lattice must be last option
+      if(i+5 == argc) { //--lattice must be last argument
         for(int j=0; j<4; j++) {
           latt_size[j] = atoi(argv[i+j+1]);
         }
@@ -95,24 +97,21 @@ bool processCmdLineArgs(int argc, char ** argv)
         std::cerr << "--lattice x y z t must be the last option." << std::endl;
         return false;
       }
-    }
-    else if(option == "--nData") {
+    } else if(option == "--nData") {
       if(i+1 < argc) {
         nData = atoi(argv[++i]);
       } else {
         std::cerr << "--nData option requires one argument." << std::endl;
         return false;
       }
-    }
-    else if(option == "--nLoops") {
+    } else if(option == "--nLoops") {
       if(i+1 < argc) {
         nLoops = atoi(argv[++i]);
       } else {
         std::cerr << "--nLoops option requires one argument." << std::endl;
         return false;
       }
-    }
-    else if(option == "--nThreads") {
+    } else if(option == "--nThreads") {
       if(i+1 < argc) {
         nThreads = atoi(argv[++i]);
         omp_set_num_threads(nThreads);
@@ -120,12 +119,20 @@ bool processCmdLineArgs(int argc, char ** argv)
         std::cerr << "--nThreads option requires one argument." << std::endl;
         return false;
       }
+    } else if(option == "--outFile") {
+      if(i+1 < argc) {
+        outFileName = argv[++i];
+      } else {
+        std::cerr << "--outFile option requires one argument." << std::endl;
+        return false;
+      }
     }
   }
   std::cout << "Lattice = " << latt_size[0] << " " << latt_size[1] << " " << latt_size[2] << " " << latt_size[3] << std::endl
             << "Measurements = " << nData << std::endl
             << "Loops per measurement = " << nLoops << std::endl
-            << "Threads = " << omp_get_max_threads() << std::endl << std::endl;
+            << "Threads = " << omp_get_max_threads() << std::endl
+            << "Output file = " << outFileName << std::endl << std::endl;
   return true;
 }
 
@@ -183,10 +190,16 @@ int main (int argc, char ** argv)
     flopData[j] = flopsPerLoop/timeData[j]/1000000000.0*nLoops;
   }
 
-  std::cout << endl << "time for " << nLoops << " loops = "
-            << average(timeData,nData) << " +/- " << standardDeviation(timeData,nData) << " secs" << endl
-            << "GFlops/second = " << average(flopData,nData) << " +/- " << standardDeviation(flopData,nData) << endl
-            << "(Average over " << nData << " measurements)" << endl;
+  ofstream file;
+  file.open(outFileName,ios::app);
+  if(file.is_open()) {
+    file << nThreads << "\t" << latt_size[0] << "\t"
+         << average(timeData,nData) << "\t" << standardDeviation(timeData,nData) << "\t"
+         << average(flopData,nData) << "\t" << standardDeviation(flopData,nData) << std::endl;
+    file.close();
+  } else {
+    std::cerr << "Unable to open file!" << std::endl;
+  }
 
   Grid_finalize();
 }

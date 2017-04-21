@@ -81,6 +81,7 @@ bool processCmdLineArgs(int argc,char** argv)
         outFileName = argv[++i];
       } else {
         std::cerr << "--outFile option requires one argument." << std::endl;
+        return false;
       }
     }
   }
@@ -127,7 +128,7 @@ int main (int argc, char ** argv)
     ofstream file;
     file.open(outFileName,ios::app);
     if(file.is_open()) {
-      file << latt_size[0] << "\t" << bytes << "\t" << bytes/time << "\t" << flops/time << std::endl;
+      file << threads << "\t" << latt_size[0] << "\t" << bytes << "\t" << bytes/time << "\t" << flops/time << std::endl;
       file.close();
     } else {
       std::cerr << "Unable to open file!" << std::endl;

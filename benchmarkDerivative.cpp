@@ -4,7 +4,7 @@ Grid examples, www.github.com/fim16418/Grid
 
 Copyright (C) 2017
 
-Source code: benchmarkCorrelation.cpp
+Source code: benchmarkDerivative.cpp
 
 Author: Moritz Fink <fink.moritz@gmail.com>
 
@@ -51,6 +51,7 @@ std::vector<int> latt_size;
 int nThreads;
 int mu;
 int length;
+std::string outFileName;
 
 bool overlapComms = false;
 
@@ -82,16 +83,17 @@ bool processCmdLineArgs(int argc, char ** argv)
 {
   nData  = 2;
   nLoops = 10;
-  latt_size = {4,4,4,8};
+  latt_size = {4,4,4,4};
   nThreads = omp_get_max_threads();
   mu = 0;
   length = 1;
+  outFileName = "output.txt";
 
   for(int i=1; i<argc; i++) {
     std::string option = std::string(argv[i]);
     if(option == "--lattice") {
       if(i+5 == argc) { //--lattice must be last argument
-        for(int j=0; j<4; j++) {
+          for(int j=0; j<4; j++) {
             latt_size[j] = atoi(argv[i+j+1]);
           }
           i+=4;
@@ -135,15 +137,23 @@ bool processCmdLineArgs(int argc, char ** argv)
           std::cerr << "--length option requires one argument." << std::endl;
           return false;
         }
+      } else if(option == "--outFile") {
+        if(i+1 < argc) {
+          outFileName = argv[++i];
+        } else {
+          std::cerr << "--outFile option requires one argument." << std::endl;
+          return false;
+        }
       }
     }
-    std::cout << "Lattice = " << latt_size[0] << " " << latt_size[1] << " " << latt_size[2] << " " << latt_size[3] << std::endl
-              << "Measurements = " << nData << std::endl
-              << "Loops per measurement = " << nLoops << std::endl
-              << "Threads = " << omp_get_max_threads() << std::endl
-              << "Derivative in direction " << mu << " with length " << length << std::endl << std::endl;
-    return true;
-  }
+  std::cout << "Lattice = " << latt_size[0] << " " << latt_size[1] << " " << latt_size[2] << " " << latt_size[3] << std::endl
+            << "Measurements = " << nData << std::endl
+            << "Loops per measurement = " << nLoops << std::endl
+            << "Threads = " << omp_get_max_threads() << std::endl
+            << "Derivative in direction " << mu << " with length " << length << std::endl
+            << "Output file = " << outFileName << std::endl << std::endl;
+  return true;
+}
 
 
 int main (int argc, char ** argv)
@@ -207,10 +217,15 @@ int main (int argc, char ** argv)
     timeData[j] = (stop-start)/1000000.0;
   }
 
-  std::cout << endl << "time for " << nLoops << " loops = "
-            << average(timeData,nData) << " +/- " << standardDeviation(timeData,nData) << " secs" << endl
-            << "(Average over " << nData << " measurements)" << endl;
+  ofstream file;
+  file.open(outFileName,ios::app);
+  if(file.is_open()) {
+    file << nThreads << "\t" << latt_size[0] << "\t"
+         << average(timeData,nData) << "\t" << standardDeviation(timeData,nData) << std::endl;
+    file.close();
+  } else {
+    std::cerr << "Unable to open file!" << std::endl;
+  }
 
   Grid_finalize();
 }
-
