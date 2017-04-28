@@ -53,6 +53,15 @@ std::vector<int> mpi_layout(4);
 int nThreads;
 std::string outFileName;
 
+double average(double* array, int len)
+{
+  double av = 0.0;
+  for(int i=0; i<len; i++) {
+    av += array[i];
+  }
+  return av/len;
+}
+
 bool processCmdLineArgs(int argc,char** argv)
 {
   nLoops = 1000;
@@ -108,6 +117,7 @@ int main (int argc, char ** argv)
 
   if(!processCmdLineArgs(argc,argv)) {
     Grid_finalize();
+    return 1;
   }
 
   std::vector<int> simd_layout = GridDefaultSimd(Nd,vComplex::Nsimd());
@@ -135,20 +145,19 @@ int main (int argc, char ** argv)
     double bytes=3.0*vol*Nc*Nc*sizeof(Complex);
     double flops=Nc*Nc*(6.0+8.0+8.0)*vol;
 
-    int nProc = Grid.ProcessorCount();
-    int rank = Grid.RankWorld();
-
     Grid.Barrier();
 
     double sumTime;
     MPI_Reduce(&time,&sumTime,1,MPI_DOUBLE,MPI_SUM,Grid.BossRank(),Grid.communicator);
+    int nProc = Grid.ProcessorCount();
     time = sumTime/nProc;
 
     if(Grid.IsBoss()) {
       ofstream file;
       file.open(outFileName,ios::app);
       if(file.is_open()) {
-        file << threads << "\t" << latt_size[0] << "\t" << bytes << "\t" << bytes/time << "\t" << flops/time << std::endl;
+        file << threads << "\t" << latt_size[0] << latt_size[1] << latt_size[2] << latt_size[2] << "\t"
+             << bytes << "\t" << bytes/time << "\t" << flops/time << std::endl;
         file.close();
       } else {
         std::cerr << "Unable to open file!" << std::endl;

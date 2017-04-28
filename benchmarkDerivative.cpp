@@ -47,7 +47,8 @@ using namespace Grid::QCD;
 
 int nData;
 int nLoops;
-std::vector<int> latt_size;
+std::vector<int> latt_size(4);
+std::vector<int> mpi_layout(4);
 int nThreads;
 int mu;
 int length;
@@ -65,29 +66,16 @@ double average(double* array, int len)
   return av/len;
 }
 
-double standardDeviation(double* array, int len)
-{
-  double squares = 0.0;
-  for(int i=0; i<len; i++) {
-    squares += array[i]*array[i];
-  }
-  squares /= len;
-
-  double av = average(array,len);
-  double var = squares - av*av;
-
-  return Grid::sqrt(var);
-}
-
 bool processCmdLineArgs(int argc, char ** argv)
 {
-  nData  = 2;
-  nLoops = 10;
+  nData  = 20;
+  nLoops = 1000;
   latt_size = {4,4,4,4};
   nThreads = omp_get_max_threads();
   mu = 0;
   length = 1;
   outFileName = "output.txt";
+  mpi_layout = {1,1,1,1};
 
   for(int i=1; i<argc; i++) {
     std::string option = std::string(argv[i]);
@@ -105,52 +93,63 @@ bool processCmdLineArgs(int argc, char ** argv)
         if(i+1 < argc) {
           nData = atoi(argv[++i]);
         } else {
-          std::cerr << "--nData option requires one argument." << std::endl;
-          return false;
-        }
-      } else if(option == "--nLoops") {
-        if(i+1 < argc) {
-          nLoops = atoi(argv[++i]);
-        } else {
-          std::cerr << "--nLoops option requires one argument." << std::endl;
-          return false;
-        }
-      } else if(option == "--nThreads") {
-        if(i+1 < argc) {
-          nThreads = atoi(argv[++i]);
-          omp_set_num_threads(nThreads);
-        } else {
-          std::cerr << "--nThreads option requires one argument." << std::endl;
-          return false;
-        }
-      } else if(option == "--mu") {
-        if(i+1 < argc) {
-          mu = atoi(argv[++i]);
-        } else {
-          std::cerr << "--mu option requires one argument." << std::endl;
-          return false;
-        }
-      } else if(option == "--length") {
-        if(i+1 < argc) {
-          length = atoi(argv[++i]);
-        } else {
-          std::cerr << "--length option requires one argument." << std::endl;
-          return false;
-        }
-      } else if(option == "--outFile") {
-        if(i+1 < argc) {
-          outFileName = argv[++i];
-        } else {
-          std::cerr << "--outFile option requires one argument." << std::endl;
-          return false;
+            std::cerr << "--nData option requires one argument." << std::endl;
+            return false;
+          }
+        } else if(option == "--nLoops") {
+          if(i+1 < argc) {
+            nLoops = atoi(argv[++i]);
+          } else {
+            std::cerr << "--nLoops option requires one argument." << std::endl;
+            return false;
+          }
+        } else if(option == "--nThreads") {
+          if(i+1 < argc) {
+            nThreads = atoi(argv[++i]);
+            omp_set_num_threads(nThreads);
+          } else {
+            std::cerr << "--nThreads option requires one argument." << std::endl;
+            return false;
+          }
+        } else if(option == "--mu") {
+          if(i+1 < argc) {
+            mu = atoi(argv[++i]);
+          } else {
+            std::cerr << "--mu option requires one argument." << std::endl;
+            return false;
+          }
+        } else if(option == "--length") {
+          if(i+1 < argc) {
+            length = atoi(argv[++i]);
+          } else {
+            std::cerr << "--length option requires one argument." << std::endl;
+            return false;
+          }
+        } else if(option == "--outFile") {
+          if(i+1 < argc) {
+            outFileName = argv[++i];
+          } else {
+            std::cerr << "--outFile option requires one argument." << std::endl;
+            return false;
+          }
+        } else if(option == "--mpiLayout") {
+          if(i+4 < argc) {
+            for(int j=0; j<4; j++) {
+              mpi_layout[j] = atoi(argv[i+j+1]);
+            }
+            i+=4;
+          } else {
+            std::cerr << "--mpiLayout option requires four arguments." << std::endl;
+            return false;
+          }
         }
       }
-    }
   std::cout << "Lattice = " << latt_size[0] << " " << latt_size[1] << " " << latt_size[2] << " " << latt_size[3] << std::endl
             << "Measurements = " << nData << std::endl
             << "Loops per measurement = " << nLoops << std::endl
             << "Threads = " << omp_get_max_threads() << std::endl
             << "Derivative in direction " << mu << " with length " << length << std::endl
+            << "Mpi Layout = " << mpi_layout[0] << " " << mpi_layout[1] << " " << mpi_layout[2] << " " << mpi_layout[3] << std::endl
             << "Output file = " << outFileName << std::endl << std::endl;
   return true;
 }
@@ -164,10 +163,12 @@ int main (int argc, char ** argv)
     overlapComms = true;
   }
 
-  if(!processCmdLineArgs(argc,argv)) return 1;
+  if(!processCmdLineArgs(argc,argv)) {
+    Grid_finalize();
+    return 1;
+  }
 
   std::vector<int> simd_layout = GridDefaultSimd(Nd,vComplex::Nsimd());
-  std::vector<int> mpi_layout  = GridDefaultMpi();
   GridCartesian               Grid(latt_size,simd_layout,mpi_layout);
 
   GridCartesian *UGrid = SpaceTimeGrid::makeFourDimGrid(latt_size,simd_layout,mpi_layout);
@@ -217,14 +218,25 @@ int main (int argc, char ** argv)
     timeData[j] = (stop-start)/1000000.0;
   }
 
-  ofstream file;
-  file.open(outFileName,ios::app);
-  if(file.is_open()) {
-    file << nThreads << "\t" << latt_size[0] << "\t"
-         << average(timeData,nData) << "\t" << standardDeviation(timeData,nData) << std::endl;
-    file.close();
-  } else {
-    std::cerr << "Unable to open file!" << std::endl;
+  double time = average(timeData,nData);
+
+  Grid.Barrier();
+
+  double sumTime;
+  MPI_Reduce(&time,&sumTime,1,MPI_DOUBLE,MPI_SUM,Grid.BossRank(),Grid.communicator);
+  int nProc = Grid.ProcessorCount();
+  time = sumTime/nProc;
+
+  if(Grid.IsBoss()) {
+    ofstream file;
+    file.open(outFileName,ios::app);
+    if(file.is_open()) {
+      file << nThreads << "\t" << latt_size[0] << latt_size[1] << latt_size[2] << latt_size[3] << "\t"
+           << time << std::endl;
+      file.close();
+    } else {
+      std::cerr << "Unable to open file!" << std::endl;
+    }
   }
 
   Grid_finalize();
