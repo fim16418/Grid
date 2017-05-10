@@ -147,9 +147,8 @@ int main (int argc, char ** argv)
   for(int s2=0; s2<Ns; s2++) {
   for(int s3=0; s3<Ns; s3++) {
   for(int s4=0; s4<Ns; s4++) {
-    //mult(tmp,colMat1[s1*Ns+s2],colMat2[s3*Ns+s4]);
     tmp = colMat1[s1*Ns+s2] * colMat2[s3*Ns+s4];
-    mda[s1*Ns*Ns*Ns+s2*Ns*Ns+s3*Ns+s4] = traceColour(tmp); //TensorIndexRecursion<ColourIndex>::traceIndex(tmp);
+    mda[s1*Ns*Ns*Ns+s2*Ns*Ns+s3*Ns+s4] = trace(tmp);
   }}}}
 
   Grid_finalize();
