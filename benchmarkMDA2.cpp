@@ -4,7 +4,7 @@ Grid examples, www.github.com/fim16418/Grid
 
 Copyright (C) 2017
 
-Source code: benchmarkMDA1.cpp
+Source code: benchmarkMDA2.cpp
 
 Author: Moritz Fink <fink.moritz@gmail.com>
 
@@ -143,16 +143,15 @@ int main (int argc, char ** argv)
   LatticePropagator p1(&Grid); random(rng,p1);
   LatticePropagator p2(&Grid); random(rng,p2);
 
-  LatticeColourMatrix colMat1[Ns*Ns](&Grid);
-  LatticeColourMatrix colMat2[Ns*Ns](&Grid);
+  LatticeSpinMatrix sMat1[Nc*Nc](&Grid);
+  LatticeSpinMatrix sMat2[Nc*Nc](&Grid);
 
-  LatticeColourMatrix tmp(&Grid);
   LatticeComplex mda[Ns*Ns*Ns*Ns](&Grid);
 
-  for(int s1=0; s1<Ns; s1++) {
-  for(int s2=0; s2<Ns; s2++) {
-    colMat1[s1*Ns+s2] = peekSpin(p1,s1,s2);
-    colMat2[s1*Ns+s2] = peekSpin(p2,s1,s2);
+  for(int c1=0; c1<Nc; c1++) {
+  for(int c2=0; c2<Nc; c2++) {
+    sMat1[c1*Nc+c2] = peekColour(p1,c1,c2);
+    sMat2[c1*Nc+c2] = peekColour(p2,c1,c2);
   }}
 
   double start = usecond();
@@ -163,8 +162,17 @@ int main (int argc, char ** argv)
     for(int s2=0; s2<Ns; s2++) {
     for(int s3=0; s3<Ns; s3++) {
     for(int s4=0; s4<Ns; s4++) {
-      tmp = colMat1[s1*Ns+s2] * colMat2[s3*Ns+s4];
-      mda[s1*Ns*Ns*Ns+s2*Ns*Ns+s3*Ns+s4] = trace(tmp);
+
+      LatticeComplex a[Nc*Nc](&Grid);
+      LatticeComplex b[Nc*Nc](&Grid);
+
+      for(int color=0; color<Nc*Nc; color++) {
+        a[color] = peekSpin(sMat1[color],s1,s2);
+        b[color] = peekSpin(sMat2[color],s3,s4);
+      }
+
+      mda[s1*Ns*Ns*Ns+s2*Ns*Ns+s3*Ns+s4] = a[0]*b[0] + a[3]*b[1] + a[6]*b[2] + a[1]*b[3] + a[4]*b[4] +
+                                           a[7]*b[5] + a[2]*b[6] + a[5]*b[7] + a[8]*b[8];
     }}}}
   }
 
@@ -179,7 +187,7 @@ int main (int argc, char ** argv)
   time = sumTime/nProc;
 
   unsigned long flopsPerLoop = (Nc*Nc*16+4)*Ns*Ns*Ns*Ns;
-  double flops = flopsPerLoop/1000000000.0*vol*nLoops;
+  double flops = flopsPerLoop/1000000000.0*vol*nLoops; //FIXME check me
 
   if(Grid.IsBoss()) {
     ofstream file;
