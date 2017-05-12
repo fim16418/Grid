@@ -148,23 +148,23 @@ int main (int argc, char ** argv)
 
   LatticeComplex mda[Ns*Ns*Ns*Ns](&Grid);
 
-  for(int c1=0; c1<Nc; c1++) {
-  for(int c2=0; c2<Nc; c2++) {
-    sMat1[c1*Nc+c2] = peekColour(p1,c1,c2);
-    sMat2[c1*Nc+c2] = peekColour(p2,c1,c2);
-  }}
+  LatticeComplex a[Nc*Nc](&Grid);
+  LatticeComplex b[Nc*Nc](&Grid);
 
   double start = usecond();
 
   for(int i=0; i<nLoops; i++) {
 
+    for(int c1=0; c1<Nc; c1++) {
+    for(int c2=0; c2<Nc; c2++) {
+      sMat1[c1*Nc+c2] = peekColour(p1,c1,c2);
+      sMat2[c1*Nc+c2] = peekColour(p2,c1,c2);
+    }}
+
     for(int s1=0; s1<Ns; s1++) {
     for(int s2=0; s2<Ns; s2++) {
     for(int s3=0; s3<Ns; s3++) {
     for(int s4=0; s4<Ns; s4++) {
-
-      LatticeComplex a[Nc*Nc](&Grid);
-      LatticeComplex b[Nc*Nc](&Grid);
 
       for(int color=0; color<Nc*Nc; color++) {
         a[color] = peekSpin(sMat1[color],s1,s2);
@@ -186,8 +186,8 @@ int main (int argc, char ** argv)
   int nProc = Grid.ProcessorCount();
   time = sumTime/nProc;
 
-  unsigned long flopsPerLoop = (Nc*Nc*16+4)*Ns*Ns*Ns*Ns;
-  double flops = flopsPerLoop/1000000000.0*vol*nLoops; //FIXME check me
+  unsigned long flopsPerLoop = (9*4+8*2)*Ns*Ns*Ns*Ns;
+  double flops = flopsPerLoop/1000000000.0*vol*nLoops;
 
   if(Grid.IsBoss()) {
     ofstream file;
