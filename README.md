@@ -22,3 +22,6 @@ This file is a modified version of the Benchmark_su3.cc file from the Grid repos
 
 ### loop.sh & slurm.sh
 In order to run the benchmarks for various lattice sizes and other parameters, this bash script can be modified and executed.
+
+### benchmarkMDA[x].cpp
+Those benchmarks aim to test different ways of calculating the Meson Distribution Amplitude (MDA) with Grid.
