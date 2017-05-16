@@ -122,7 +122,6 @@ bool processCmdLineArgs(int argc,char** argv)
   return true;
 }
 
-
 int main (int argc, char ** argv)
 {
   Grid_init(&argc,&argv);
@@ -140,8 +139,17 @@ int main (int argc, char ** argv)
 
   int vol = latt_size[0]*latt_size[1]*latt_size[2]*latt_size[3];
 
-  LatticePropagator p1(&Grid); random(rng,p1);
-  LatticePropagator p2(&Grid); random(rng,p2);
+  LatticePropagator p1(&Grid); //random(rng,p1);
+  LatticePropagator p2(&Grid); //random(rng,p2);
+
+  for(int x=0; x<p1._odata.size(); x++) {
+  for(int s1=0; s1<Ns; s1++) {
+  for(int s2=0; s2<Ns; s2++) {
+  for(int c1=0; c1<Nc; c1++) {
+  for(int c2=0; c2<Nc; c2++) {
+    p1._odata[x]._internal._internal[s1][s2]._internal[c1][c2] = x*10000 + s1*1000 + s2*100 + c1*10 + c2;
+    p2._odata[x]._internal._internal[s1][s2]._internal[c1][c2] = x*10000 + s1*1000 + s2*100 + c1*10 + c2;
+  }}}}}
 
   LatticeColourMatrix colMat1[Ns*Ns](&Grid);
   LatticeColourMatrix colMat2[Ns*Ns](&Grid);
@@ -158,7 +166,6 @@ int main (int argc, char ** argv)
       colMat1[s1*Ns+s2] = peekSpin(p1,s1,s2);
       colMat2[s1*Ns+s2] = peekSpin(p2,s1,s2);
     }}
-
     for(int s1=0; s1<Ns; s1++) {
     for(int s2=0; s2<Ns; s2++) {
     for(int s3=0; s3<Ns; s3++) {
@@ -182,6 +189,8 @@ int main (int argc, char ** argv)
   double flops = flopsPerLoop/1000000000.0*vol*nLoops;
 
   if(Grid.IsBoss()) {
+    std::cout << "mda[0] = " << mda[0]._odata[0] << std::endl; // check the result
+
     ofstream file;
     file.open(outFileName,ios::app);
     if(file.is_open()) {
@@ -195,3 +204,4 @@ int main (int argc, char ** argv)
 
   Grid_finalize();
 }
+
