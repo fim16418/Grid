@@ -172,17 +172,14 @@ int main (int argc, char ** argv)
 
     for(int s1=0; s1<Ns; s1++) {
     for(int s2=0; s2<Ns; s2++) {
-      
+
       for(int color=0; color<Nc*Nc; color++) {
         a[color] = peekSpin(sMat1[color],s1,s2);
+        b[color] = peekSpin(sMat2[color],s1,s2);
       }
-      
+
       for(int s3=0; s3<Ns; s3++) {
       for(int s4=0; s4<Ns; s4++) {
-
-        for(int color=0; color<Nc*Nc; color++) {
-          b[color] = peekSpin(sMat2[color],s3,s4);
-        }
 
         mda[s1*Ns*Ns*Ns+s2*Ns*Ns+s3*Ns+s4] = a[0]*b[0] + a[3]*b[1] + a[6]*b[2] + a[1]*b[3] + a[4]*b[4] +
                                              a[7]*b[5] + a[2]*b[6] + a[5]*b[7] + a[8]*b[8];

@@ -122,6 +122,7 @@ bool processCmdLineArgs(int argc,char** argv)
   return true;
 }
 
+
 int main (int argc, char ** argv)
 {
   Grid_init(&argc,&argv);
@@ -166,6 +167,7 @@ int main (int argc, char ** argv)
       colMat1[s1*Ns+s2] = peekSpin(p1,s1,s2);
       colMat2[s1*Ns+s2] = peekSpin(p2,s1,s2);
     }}
+
     for(int s1=0; s1<Ns; s1++) {
     for(int s2=0; s2<Ns; s2++) {
     for(int s3=0; s3<Ns; s3++) {
@@ -204,4 +206,3 @@ int main (int argc, char ** argv)
 
   Grid_finalize();
 }
-
