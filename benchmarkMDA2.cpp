@@ -133,7 +133,7 @@ int main (int argc, char ** argv)
   }
 
   std::vector<int> simd_layout = GridDefaultSimd(Nd,vComplex::Nsimd());
-  GridCartesian     Grid(latt_size,simd_layout,mpi_layout);
+  GridCartesian    Grid(latt_size,simd_layout,mpi_layout);
 
   GridParallelRNG rng(&Grid);
   rng.SeedRandomDevice();
@@ -152,39 +152,45 @@ int main (int argc, char ** argv)
     p2._odata[x]._internal._internal[s1][s2]._internal[c1][c2] = x*10000 + s1*1000 + s2*100 + c1*10 + c2;
   }}}}}
 
-  LatticeSpinMatrix sMat1[Nc*Nc](&Grid);
-  LatticeSpinMatrix sMat2[Nc*Nc](&Grid);
+  LatticeSpinMatrix sMat1(&Grid);
+  LatticeSpinMatrix sMat2(&Grid);
 
   LatticeComplex mda[Ns*Ns*Ns*Ns](&Grid);
 
-  LatticeComplex a[Nc*Nc](&Grid);
-  LatticeComplex b[Nc*Nc](&Grid);
+  LatticeComplex a[Ns*Ns*Nc*Nc](&Grid);
+  LatticeComplex b[Ns*Ns*Nc*Nc](&Grid);
+
+  for(int c1=0; c1<Nc; c1++) {
+  for(int c2=0; c2<Nc; c2++) {
+    sMat1 = peekColour(p1,c1,c2);
+    sMat2 = peekColour(p2,c1,c2);
+
+    for(int s1=0; s1<Ns; s1++) {
+    for(int s2=0; s2<Ns; s2++) {
+      a[c1*Nc*Ns*Ns+c2*Ns*Ns+s1*Ns+s2] = peekSpin(sMat1,s1,s2);
+      b[c1*Nc*Ns*Ns+c2*Ns*Ns+s1*Ns+s2] = peekSpin(sMat2,s1,s2);
+    }}
+  }}
 
   double start = usecond();
 
   for(int i=0; i<nLoops; i++) {
 
-    for(int c1=0; c1<Nc; c1++) {
-    for(int c2=0; c2<Nc; c2++) {
-      sMat1[c1*Nc+c2] = peekColour(p1,c1,c2);
-      sMat2[c1*Nc+c2] = peekColour(p2,c1,c2);
-    }}
-
     for(int s1=0; s1<Ns; s1++) {
     for(int s2=0; s2<Ns; s2++) {
+    for(int s3=0; s3<Ns; s3++) {
+    for(int s4=0; s4<Ns; s4++) {
 
-      for(int color=0; color<Nc*Nc; color++) {
-        a[color] = peekSpin(sMat1[color],s1,s2);
-        b[color] = peekSpin(sMat2[color],s1,s2);
-      }
-
-      for(int s3=0; s3<Ns; s3++) {
-      for(int s4=0; s4<Ns; s4++) {
-
-        mda[s1*Ns*Ns*Ns+s2*Ns*Ns+s3*Ns+s4] = a[0]*b[0] + a[3]*b[1] + a[6]*b[2] + a[1]*b[3] + a[4]*b[4] +
-                                             a[7]*b[5] + a[2]*b[6] + a[5]*b[7] + a[8]*b[8];
-      }}
-    }}
+      mda[s1*Ns*Ns*Ns+s2*Ns*Ns+s3*Ns+s4] = a[0*Ns*Ns+s1*Ns+s2] * b[0*Ns*Ns+s3*Ns+s4] +
+                                           a[3*Ns*Ns+s1*Ns+s2] * b[1*Ns*Ns+s3*Ns+s4] +
+                                           a[6*Ns*Ns+s1*Ns+s2] * b[2*Ns*Ns+s3*Ns+s4] +
+                                           a[1*Ns*Ns+s1*Ns+s2] * b[3*Ns*Ns+s3*Ns+s4] +
+                                           a[4*Ns*Ns+s1*Ns+s2] * b[4*Ns*Ns+s3*Ns+s4] +
+                                           a[7*Ns*Ns+s1*Ns+s2] * b[5*Ns*Ns+s3*Ns+s4] +
+                                           a[2*Ns*Ns+s1*Ns+s2] * b[6*Ns*Ns+s3*Ns+s4] +
+                                           a[5*Ns*Ns+s1*Ns+s2] * b[7*Ns*Ns+s3*Ns+s4] +
+                                           a[8*Ns*Ns+s1*Ns+s2] * b[8*Ns*Ns+s3*Ns+s4];
+    }}}}
   }
 
   double stop = usecond();

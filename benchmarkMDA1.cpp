@@ -158,15 +158,15 @@ int main (int argc, char ** argv)
   LatticeColourMatrix tmp(&Grid);
   LatticeComplex mda[Ns*Ns*Ns*Ns](&Grid);
 
+  for(int s1=0; s1<Ns; s1++) {
+  for(int s2=0; s2<Ns; s2++) {
+    colMat1[s1*Ns+s2] = peekSpin(p1,s1,s2);
+    colMat2[s1*Ns+s2] = peekSpin(p2,s1,s2);
+  }}
+
   double start = usecond();
 
   for(int i=0; i<nLoops; i++) {
-
-    for(int s1=0; s1<Ns; s1++) {
-    for(int s2=0; s2<Ns; s2++) {
-      colMat1[s1*Ns+s2] = peekSpin(p1,s1,s2);
-      colMat2[s1*Ns+s2] = peekSpin(p2,s1,s2);
-    }}
 
     for(int s1=0; s1<Ns; s1++) {
     for(int s2=0; s2<Ns; s2++) {
