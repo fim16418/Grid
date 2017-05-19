@@ -52,6 +52,7 @@ std::vector<int> latt_size(4);
 std::vector<int> mpi_layout(4);
 int nThreads;
 std::string outFileName;
+int nProps;
 
 double average(double* array, int len)
 {
@@ -69,6 +70,7 @@ bool processCmdLineArgs(int argc,char** argv)
   outFileName = "output.txt";
   mpi_layout = {1,1,1,1};
   latt_size = {8,8,8,8};
+  nProps = 4;
 
   for(int i=1; i<argc; i++) {
     std::string option = std::string(argv[i]);
@@ -114,13 +116,21 @@ bool processCmdLineArgs(int argc,char** argv)
         std::cerr << "--lattice option requires four arguments." << std::endl;
         return false;
       }
+    } else if(option == "--nProps") {
+      if(i+1 < argc) {
+        nProps = atoi(argv[++i]);
+      } else {
+        std::cerr << "--nProps option requires one argument." << std::endl;
+        return false;
+      }
     }
   }
   std::cout /*<< "Loops per measurement = " << nLoops << std::endl*/
             << "Threads = " << omp_get_max_threads() << std::endl
             << "Lattice = " << latt_size[0] << " " << latt_size[1] << " " << latt_size[2] << " " << latt_size[3] << std::endl
             << "Mpi Layout = " << mpi_layout[0] << " " << mpi_layout[1] << " " << mpi_layout[2] << " " << mpi_layout[3] << std::endl
-            << "Output file = " << outFileName << std::endl << std::endl;
+            << "Output file = " << outFileName << std::endl
+            << "Number of propagators = " << nProps << std::endl << std::endl;
   return true;
 }
 
@@ -224,7 +234,6 @@ int main (int argc, char ** argv)
 
   int derivativeLen = 1;
 
-  int nProps = 4;
   LatticePropagator props[nProps](&Grid);
   for(int i=0; i<nProps; i++) {
     random(rng,props[i]);
@@ -239,6 +248,8 @@ int main (int argc, char ** argv)
   LatticeComplex data2[Nc*Nc*Ns*Ns](props[0]._grid);
 
   LatticeComplex resultBuffer[Ns*Ns*Ns*Ns](props[0]._grid);
+
+  double timerStart = usecond();
 
   for(int p1=0; p1<nProps; p1++) {
 
@@ -302,6 +313,21 @@ int main (int argc, char ** argv)
 
         }
       }
+    }
+  }
+
+  double timerStop = usecond();
+  double timerTime = (timerStop - timerStart) / 1000000.0;
+
+  if(Grid.IsBoss()) {
+    ofstream file;
+    file.open(outFileName,ios::app);
+    if(file.is_open()) {
+      file << nThreads << "\t" << latt_size[0] << latt_size[1] << latt_size[2] << latt_size[3] << "\t"
+           << timerTime << std::endl;
+      file.close();
+    } else {
+      std::cerr << "Unable to open file!" << std::endl;
     }
   }
 
