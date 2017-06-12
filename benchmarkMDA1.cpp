@@ -187,7 +187,7 @@ int main (int argc, char ** argv)
   int nProc = Grid.ProcessorCount();
   time = sumTime/nProc;
 
-  unsigned long flopsPerLoop = (Nc*Nc*16+4)*Ns*Ns*Ns*Ns;
+  unsigned long flopsPerLoop = (Nc*Nc*16+4)*Ns*Ns*Ns*Ns; // vol placed below
   double flops = flopsPerLoop/1000000000.0*vol*nLoops;
 
   if(Grid.IsBoss()) {
@@ -197,7 +197,7 @@ int main (int argc, char ** argv)
     file.open(outFileName,ios::app);
     if(file.is_open()) {
       file << nThreads << "\t" << latt_size[0] << latt_size[1] << latt_size[2] << latt_size[3] << "\t"
-           << time << "\t" << flops/time << std::endl;
+           << vol << "\t" << time << "\t" << flops/time << std::endl;
       file.close();
     } else {
       std::cerr << "Unable to open file!" << std::endl;

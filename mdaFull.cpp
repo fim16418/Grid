@@ -324,7 +324,7 @@ int main (int argc, char ** argv)
     file.open(outFileName,ios::app);
     if(file.is_open()) {
       file << nThreads << "\t" << latt_size[0] << latt_size[1] << latt_size[2] << latt_size[3] << "\t"
-           << timerTime << std::endl;
+           << vol << "\t" << timerTime << std::endl;
       file.close();
     } else {
       std::cerr << "Unable to open file!" << std::endl;

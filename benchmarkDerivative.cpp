@@ -68,7 +68,7 @@ double average(double* array, int len)
 
 bool processCmdLineArgs(int argc, char ** argv)
 {
-  nData  = 20;
+  nData  = 1;
   nLoops = 1000;
   latt_size = {4,4,4,4};
   nThreads = omp_get_max_threads();
@@ -201,6 +201,7 @@ int main (int argc, char ** argv)
   anti_quark = adj(anti_quark);
 
   LatticeColourMatrix gField = U[mu];
+  LatticePropagator tmp;
 
   double timeData[nData];
 
@@ -208,8 +209,8 @@ int main (int argc, char ** argv)
     double start = usecond();
 
     for(int i=0; i<nLoops; i++) {
-      LatticePropagator tmp     = adj(gField) * quark_propagator;
-      LatticeComplex    corr_fn = trace(anti_quark * gamma5 * (gField*Cshift(quark_propagator,mu,length) - Cshift(tmp,mu,-length)) * gamma5);
+      tmp = adj(gField) * quark_propagator;
+      LatticeComplex corr_fn = trace(anti_quark * gamma5 * (gField*Cshift(quark_propagator,mu,length) - Cshift(tmp,mu,-length))*gamma5);
       //std::cout << corr_fn[0] << std::endl; break; //for test purposes
     }
 
@@ -227,12 +228,14 @@ int main (int argc, char ** argv)
   int nProc = Grid.ProcessorCount();
   time = sumTime/nProc;
 
+  int vol = latt_size[0] * latt_size[1] * latt_size[2] * latt_size[3];
+
   if(Grid.IsBoss()) {
     ofstream file;
     file.open(outFileName,ios::app);
     if(file.is_open()) {
       file << nThreads << "\t" << latt_size[0] << latt_size[1] << latt_size[2] << latt_size[3] << "\t"
-           << time << std::endl;
+           << vol << "\t" << time << std::endl;
       file.close();
     } else {
       std::cerr << "Unable to open file!" << std::endl;
