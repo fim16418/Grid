@@ -186,7 +186,7 @@ int main (int argc, char ** argv)
     U[dir] = PeekIndex<LorentzIndex>(Umu,dir);
   }
 
-  Gamma gamma5(Gamma::Gamma5);
+  Gamma gamma5(Gamma::Algebra::Gamma5);
   LatticePropagator quark_propagator(&Grid);
 
   for(int index=0; index<quark_propagator._odata.size(); index++) {

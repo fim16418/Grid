@@ -152,7 +152,7 @@ bool processCmdLineArgs(int argc, char ** argv)
     std::vector<int> simd_layout = GridDefaultSimd(Nd,vComplex::Nsimd());
     GridCartesian               Grid(latt_size,simd_layout,mpi_layout);
 
-    Gamma gamma5(Gamma::Gamma5);
+    Gamma gamma5(Gamma::Algebra::Gamma5);
     LatticePropagator quark_propagator(&Grid);
 
     for(int i0=0; i0<quark_propagator._odata.size(); i0++) {
