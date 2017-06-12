@@ -201,7 +201,7 @@ int main (int argc, char ** argv)
   anti_quark = adj(anti_quark);
 
   LatticeColourMatrix gField = U[mu];
-  LatticePropagator tmp;
+  LatticePropagator tmp(&Grid);
 
   double timeData[nData];
 
