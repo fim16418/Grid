@@ -137,7 +137,7 @@ int main (int argc, char ** argv)
 
   GridParallelRNG rng(&Grid);
   //rng.SeedRandomDevice();
-  rng.SeedFixedIntegers(std::vector<int>({1,2,3,4});
+  rng.SeedFixedIntegers(std::vector<int>({1,2,3,4}));
 
   int vol = latt_size[0]*latt_size[1]*latt_size[2]*latt_size[3];
 
