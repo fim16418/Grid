@@ -136,12 +136,15 @@ bool processCmdLineArgs(int argc,char** argv)
 
 namespace MDA {
 
-  void derivative(const LatticePropagator& prop, int dir, int len, LatticePropagator& ret)
+  inline void derivative(const LatticePropagator& prop, const LatticeGaugeField& u, int dir, int len, LatticePropagator& ret)
   {
-    ret = 0.5 * (Cshift(prop,dir,len) - Cshift(prop,dir,-len));
+    //ret = 0.5 * (Cshift(prop,dir,len) - Cshift(prop,dir,-len));
+    LatticeColourMatrix u_mu = PeekIndex<LorentzIndex>(u,dir);
+    LatticePropagator tmp = adj(u_mu)*prop;
+    ret = u_mu*Cshift(prop,dir,len) - Cshift(tmp,dir,-len);
   }
 
-  void arrangeData(const LatticePropagator& prop, LatticeComplex* data)
+  inline void arrangeData(const LatticePropagator& prop, LatticeComplex* data)
   {
     LatticeSpinMatrix sMat(prop._grid);
 
@@ -156,7 +159,7 @@ namespace MDA {
     }}
   }
 
-  void mda(LatticeComplex* a, LatticeComplex* b, LatticeComplex* ret)
+  inline void mda(LatticeComplex* a, LatticeComplex* b, LatticeComplex* ret)
   {
     for(int s1=0; s1<Ns; s1++) {
     for(int s2=0; s2<Ns; s2++) {
@@ -179,18 +182,18 @@ namespace MDA {
 
 namespace TIMING {
 
-  void derivative(const LatticePropagator& prop, int dir, int len, LatticePropagator& ret)
+  inline void derivative(const LatticePropagator& prop, const LatticeGaugeField& u, int dir, int len, LatticePropagator& ret)
   {
     double start = usecond();
 
-    MDA::derivative(prop,dir,len,ret);
+    MDA::derivative(prop,u,dir,len,ret);
 
     double stop = usecond();
     std::cout << std::endl << "derivative time = "
               << (stop - start)/1000000.0 << " secs" << std::endl;
   }
 
-  void arrangeData(const LatticePropagator& prop, LatticeComplex* data)
+  inline void arrangeData(const LatticePropagator& prop, LatticeComplex* data)
   {
     double start = usecond();
 
@@ -201,7 +204,7 @@ namespace TIMING {
               << (stop - start)/1000000.0 << " secs" << std::endl;
   }
 
-  void mda(LatticeComplex* a, LatticeComplex* b, LatticeComplex* ret)
+  inline void mda(LatticeComplex* a, LatticeComplex* b, LatticeComplex* ret)
   {
     double start = usecond();
 
@@ -240,10 +243,11 @@ int main (int argc, char ** argv)
     random(rng,props[i]);
   }
 
+  LatticeGaugeField U(&Grid);
+  random(rng,U);
+
   LatticePropagator dProp1(props[0]._grid);
   LatticePropagator dProp2(props[0]._grid);
-
-  LatticePropagator d2Prop1(props[0]._grid);
 
   LatticeComplex data1[Nc*Nc*Ns*Ns](props[0]._grid);
   LatticeComplex data2[Nc*Nc*Ns*Ns](props[0]._grid);
@@ -258,7 +262,7 @@ int main (int argc, char ** argv)
 
     for(int mu=0; mu<Nd; mu++) {
 
-      MYNAMESPACE::derivative(prop1,mu,derivativeLen,dProp1);
+      MYNAMESPACE::derivative(prop1,U,mu,derivativeLen,dProp1);
 
       MYNAMESPACE::arrangeData(dProp1,data1);
 
@@ -276,9 +280,9 @@ int main (int argc, char ** argv)
 
         if(mu == nu) continue;
 
-        MYNAMESPACE::derivative(dProp1,nu,derivativeLen,d2Prop1);
+        MYNAMESPACE::derivative(dProp1,U,nu,derivativeLen,dProp2);
 
-        MYNAMESPACE::arrangeData(d2Prop1,data1);
+        MYNAMESPACE::arrangeData(dProp2,data1);
 
         for(int p2=0; p2<nProps; p2++) {
 
@@ -298,7 +302,7 @@ int main (int argc, char ** argv)
 
       for(int mu=0; mu<Nd; mu++) {
 
-        MYNAMESPACE::derivative(prop1,mu,derivativeLen,dProp1);
+        MYNAMESPACE::derivative(prop1,U,mu,derivativeLen,dProp1);
 
         MYNAMESPACE::arrangeData(dProp1,data1);
 
@@ -306,7 +310,7 @@ int main (int argc, char ** argv)
 
           if(mu >= nu) continue;
 
-          MYNAMESPACE::derivative(prop2,nu,derivativeLen,dProp2);
+          MYNAMESPACE::derivative(prop2,U,nu,derivativeLen,dProp2);
 
           MYNAMESPACE::arrangeData(dProp2,data2);
 
@@ -325,7 +329,7 @@ int main (int argc, char ** argv)
     file.open(outFileName,ios::app);
     if(file.is_open()) {
       file << nThreads << "\t" << latt_size[0] << latt_size[1] << latt_size[2] << latt_size[3] << "\t"
-           << vol << "\t" << timerTime << std::endl;
+           << timerTime << std::endl;
       file.close();
     } else {
       std::cerr << "Unable to open file!" << std::endl;
