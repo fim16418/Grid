@@ -4,7 +4,7 @@ Grid examples, www.github.com/fim16418/Grid
 
 Copyright (C) 2017
 
-Source code: mdaFull.cc
+Source code: mdaFull_icc.cc
 
 Author: Moritz Fink <fink.moritz@gmail.com>
 
@@ -238,7 +238,12 @@ int main (int argc, char ** argv)
 
   int derivativeLen = 1;
 
-  LatticePropagator props[nProps](&Grid);
+  //LatticePropagator props[nProps](&Grid);
+  // Work-around for LatticeColourMatrix colMat1[Ns*Ns](&Grid)
+  void* raw_memory = operator new[](nProps * sizeof(LatticePropagator(&Grid)));
+  LatticePropagator* props = static_cast<LatticePropagator*>( raw_memory );
+  for(int i=0; i<nProps; i++) new( &props[i] )LatticePropagator(&Grid);
+
   for(int i=0; i<nProps; i++) {
     random(rng,props[i]);
   }
@@ -249,10 +254,20 @@ int main (int argc, char ** argv)
   LatticePropagator dProp1(props[0]._grid);
   LatticePropagator dProp2(props[0]._grid);
 
-  LatticeComplex data1[Nc*Nc*Ns*Ns](props[0]._grid);
-  LatticeComplex data2[Nc*Nc*Ns*Ns](props[0]._grid);
+  // Work-around for LatticeComplex data1[Nc*Nc*Ns*Ns](props[0]._grid);
+  void* raw_memory2 = operator new[](Nc*Nc*Ns*Ns * sizeof(LatticeComplex(&Grid)));
+  LatticeComplex* data1 = static_cast<LatticeComplex*>( raw_memory2 );
+  for(int i=0; i<Nc*Nc*Ns*Ns; i++) new( &data1[i] )LatticeComplex(&Grid);
 
-  LatticeComplex resultBuffer[Ns*Ns*Ns*Ns](props[0]._grid);
+  // Work-around for LatticeComplex data2[Nc*Nc*Ns*Ns](props[0]._grid);
+  void* raw_memory3 = operator new[](Nc*Nc*Ns*Ns * sizeof(LatticeComplex(&Grid)));
+  LatticeComplex* data2 = static_cast<LatticeComplex*>( raw_memory3 );
+  for(int i=0; i<Nc*Nc*Ns*Ns; i++) new( &data2[i] )LatticeComplex(&Grid);
+
+  // Work-around for LatticeComplex resultBuffer[Ns*Ns*Ns*Ns](props[0]._grid);
+  void* raw_memory4 = operator new[](Ns*Ns*Ns*Ns * sizeof(LatticeComplex(&Grid)));
+  LatticeComplex* resultBuffer = static_cast<LatticeComplex*>( raw_memory4 );
+  for(int i=0; i<Ns*Ns*Ns*Ns; i++) new( &resultBuffer[i] )LatticeComplex(&Grid);
 
   double timerStart = usecond();
 
@@ -335,6 +350,21 @@ int main (int argc, char ** argv)
       std::cerr << "Unable to open file!" << std::endl;
     }
   }
+
+  for(int i=nProps-1; i>=0; i--) {
+    props[i].~LatticePropagator();
+  }
+  for(int i=Ns*Ns*Nc*Nc-1; i>=0; i--) {
+    data1[i].~LatticeComplex();
+    data2[i].~LatticeComplex();
+  }
+  for(int i=Ns*Ns*Ns*Ns-1; i>=0; i--) {
+    resultBuffer[i].~LatticeComplex();
+  }
+  operator delete[]( raw_memory );
+  operator delete[]( raw_memory2 );
+  operator delete[]( raw_memory3 );
+  operator delete[]( raw_memory4 );
 
   Grid_finalize();
 }
