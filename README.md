@@ -2,7 +2,7 @@
 ### C++ code examples for the Grid library (www.github.com/paboyle/Grid)
 
 ## Abstract
-This repository contains some example programs for the Grid library. This repo addresses people that like to do Lattice Quantum Chromodynamic (LQCD) and want to try out this new library. The examples show how to use Grid's features. They also provide some benchmarks whose corresponding Chroma files can be found in my Chroma repo (www.github.com/fim16418/Chroma) and used for comparison of the two libraries. For the compilation I used the release/v0.6.0 branch of the Grid repository but other branches should work too.
+This repository contains some example programs for the Grid library. This repo addresses people that like to do Lattice Quantum Chromodynamic (LQCD) and want to try out this new library. The examples show how to use Grid's features. They also provide some benchmarks whose corresponding Chroma files can be found in my Chroma repo (www.github.com/fim16418/Chroma) and used for comparison of the two libraries. For the compilation I used the release/v0.7.0 branch of the Grid repository.
 
 ## The files
 ### rng.cpp
@@ -24,4 +24,7 @@ This file is a modified version of the Benchmark_su3.cc file from the Grid repos
 In order to run the benchmarks for various lattice sizes and other parameters, this bash script can be modified and executed.
 
 ### benchmarkMDA[x].cpp
-Those benchmarks aim to test different ways of calculating the Meson Distribution Amplitude (MDA) with Grid.
+Those benchmarks aim to test different ways of calculating the Meson Distribution Amplitude (MDA) with Grid. Choose the icc files if you use the Intel compiler.
+
+### fullMDA.cpp
+Implementation of an efficient algorithm for computing the MDA of propagator combinations involving their derivatives. Choose the icc files if you use the Intel compiler.
