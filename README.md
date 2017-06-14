@@ -26,5 +26,5 @@ In order to run the benchmarks for various lattice sizes and other parameters, t
 ### benchmarkMDA[x].cpp
 Those benchmarks aim to test different ways of calculating the Meson Distribution Amplitude (MDA) with Grid. Choose the icc files if you use the Intel compiler.
 
-### fullMDA.cpp
+### mdaFull.cpp
 Implementation of an efficient algorithm for computing the MDA of propagator combinations involving their derivatives. Choose the icc files if you use the Intel compiler.
