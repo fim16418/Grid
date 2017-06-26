@@ -176,6 +176,8 @@ int main (int argc, char ** argv)
   LatticeComplex* b = static_cast<LatticeComplex*>( raw_memory3 );
   for(int i=0; i<Ns*Ns*Nc*Nc; i++) new( &b[i] )LatticeComplex(&Grid);
 
+  double start = usecond();
+
   for(int c1=0; c1<Nc; c1++) {
   for(int c2=0; c2<Nc; c2++) {
     sMat1 = peekColour(p1,c1,c2);
@@ -188,7 +190,10 @@ int main (int argc, char ** argv)
     }}
   }}
 
-  double start = usecond();
+  double stop = usecond();
+  double time_prep = (stop-start)/1000000.0;
+
+  start = usecond();
 
   for(int i=0; i<nLoops; i++) {
 
@@ -209,7 +214,7 @@ int main (int argc, char ** argv)
     }}}}
   }
 
-  double stop = usecond();
+  stop = usecond();
   double time = (stop-start)/1000000.0;
 
   Grid.Barrier();
@@ -229,7 +234,7 @@ int main (int argc, char ** argv)
     file.open(outFileName,ios::app);
     if(file.is_open()) {
       file << nThreads << "\t" << latt_size[0] << latt_size[1] << latt_size[2] << latt_size[3] << "\t"
-           << vol << "\t" << time << "\t" << flops/time << std::endl;
+           << vol << "\t" << time_prep << "\t" << time << "\t" << flops/time << std::endl;
       file.close();
     } else {
       std::cerr << "Unable to open file!" << std::endl;
