@@ -43,7 +43,7 @@ using namespace std;
 using namespace Grid;
 using namespace Grid::QCD;
 
-int main(int *argc, char **argv)
+int main(int argc, char **argv)
 /* Demo for the use of the
  * Random Number Generator (RNG)
  * on a LatticePropagator */

@@ -43,7 +43,7 @@ using namespace std;
 using namespace Grid;
 using namespace Grid::QCD;
 
-int main(int *argc, char **argv)
+int main(int argc, char **argv)
 /* Test of peek & poke on a
  * LatticeSpinMatrix without
  * using the functions */
