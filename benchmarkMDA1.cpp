@@ -4,7 +4,7 @@ Grid examples, www.github.com/fim16418/Grid
 
 Copyright (C) 2017
 
-Source code: benchmarkMDA1.cpp
+Source code: benchmarkMDA1_icc.cpp
 
 Author: Moritz Fink <fink.moritz@gmail.com>
 
@@ -40,6 +40,9 @@ See the full license in the file "LICENSE" in the top level distribution directo
 #include <Grid/Grid.h>
 #include <iostream>
 #include <fstream>
+#include <vector>
+
+#define WARM_UP 10
 
 using namespace std;
 using namespace Grid;
@@ -51,13 +54,20 @@ std::vector<int> mpi_layout(4);
 int nThreads;
 std::string outFileName;
 
-double average(double* array, int len)
+
+void error(double* array, int len, double& average, double& error)
 {
-  double av = 0.0;
+  average = 0.0;
+  double square = 0.0;
+
   for(int i=0; i<len; i++) {
-    av += array[i];
+    average += array[i];
+    square += array[i]*array[i];
   }
-  return av/len;
+
+  average = average/len;
+  square = square/len;
+  error = std::sqrt(square - average*average);
 }
 
 bool processCmdLineArgs(int argc,char** argv)
@@ -114,7 +124,7 @@ bool processCmdLineArgs(int argc,char** argv)
       }
     }
   }
-  std::cout << "Loops per measurement = " << nLoops << std::endl
+  std::cout << "Loops = " << nLoops << std::endl
             << "Threads = " << omp_get_max_threads() << std::endl
             << "Lattice = " << latt_size[0] << " " << latt_size[1] << " " << latt_size[2] << " " << latt_size[3] << std::endl
             << "Mpi Layout = " << mpi_layout[0] << " " << mpi_layout[1] << " " << mpi_layout[2] << " " << mpi_layout[3] << std::endl
@@ -132,11 +142,14 @@ int main (int argc, char ** argv)
     return 1;
   }
 
+  /*//////////////////
+  // Initialization //
+  //////////////////*/
+
   std::vector<int> simd_layout = GridDefaultSimd(Nd,vComplex::Nsimd());
   GridCartesian     Grid(latt_size,simd_layout,mpi_layout);
 
   GridParallelRNG rng(&Grid);
-  //rng.SeedRandomDevice();
   rng.SeedFixedIntegers(std::vector<int>({1,2,3,4}));
 
   int vol = latt_size[0]*latt_size[1]*latt_size[2]*latt_size[3];
@@ -153,27 +166,63 @@ int main (int argc, char ** argv)
     p2._odata[x]._internal._internal[s1][s2]._internal[c1][c2] = x*10000 + s1*1000 + s2*100 + c1*10 + c2;
   }}}}}
 
-  LatticeColourMatrix colMat1[Ns*Ns](&Grid);
-  LatticeColourMatrix colMat2[Ns*Ns](&Grid);
+  // Work-around for LatticeColourMatrix colMat1[Ns*Ns](&Grid)
+  void* raw_memory = operator new[](Ns*Ns * sizeof(LatticeColourMatrix(&Grid)));
+  LatticeColourMatrix* colMat1 = static_cast<LatticeColourMatrix*>( raw_memory );
+  for(int i=0; i<Ns*Ns; i++) new( &colMat1[i] )LatticeColourMatrix(&Grid);
+
+  // Work-around for LatticeColourMatrix colMat2[Ns*Ns](&Grid)
+  void* raw_memory2 = operator new[](Ns*Ns * sizeof(LatticeColourMatrix(&Grid)));
+  LatticeColourMatrix* colMat2 = static_cast<LatticeColourMatrix*>( raw_memory2 );
+  for(int i=0; i<Ns*Ns; i++) new( &colMat2[i] )LatticeColourMatrix(&Grid);
 
   LatticeColourMatrix tmp(&Grid);
-  LatticeComplex mda[Ns*Ns*Ns*Ns](&Grid);
 
-  double start = usecond();
+  // Work-around for LatticeComplex mda[Ns*Ns*Ns*Ns](&Grid)
+  void* raw_memory3 = operator new[](Ns*Ns*Ns*Ns * sizeof(LatticeComplex(&Grid)));
+  LatticeComplex* mda = static_cast<LatticeComplex*>( raw_memory3 );
+  for(int i=0; i<Ns*Ns*Ns*Ns; i++) new( &mda[i] )LatticeComplex(&Grid);
 
-  for(int s1=0; s1<Ns; s1++) {
-  for(int s2=0; s2<Ns; s2++) {
-    colMat1[s1*Ns+s2] = peekSpin(p1,s1,s2);
-    colMat2[s1*Ns+s2] = peekSpin(p2,s1,s2);
-  }}
+  /*///////////////
+  // Preparation //
+  //   Warm up   //
+  ///////////////*/
 
-  double stop = usecond();
-  double time_prep = (stop-start)/1000000.0;
+  for(int i=0; i<WARM_UP; i++) {
+    for(int s1=0; s1<Ns; s1++) {
+    for(int s2=0; s2<Ns; s2++) {
+      colMat1[s1*Ns+s2] = peekSpin(p1,s1,s2);
+      colMat2[s1*Ns+s2] = peekSpin(p2,s1,s2);
+    }}
+  }
 
-  start = usecond();
+  /*///////////////
+  // Preparation //
+  // Measurement //
+  ///////////////*/
+
+  double timePrep[nLoops];
+  double start, stop;
 
   for(int i=0; i<nLoops; i++) {
+    start = usecond();
 
+    for(int s1=0; s1<Ns; s1++) {
+    for(int s2=0; s2<Ns; s2++) {
+      colMat1[s1*Ns+s2] = peekSpin(p1,s1,s2);
+      colMat2[s1*Ns+s2] = peekSpin(p2,s1,s2);
+    }}
+
+    stop = usecond();
+    timePrep[i] = stop-start;
+  }
+
+  /*///////////////
+  // Calculation //
+  //   Warm up   //
+  ///////////////*/
+
+  for(int i=0; i<WARM_UP; i++) {
     for(int s1=0; s1<Ns; s1++) {
     for(int s2=0; s2<Ns; s2++) {
     for(int s3=0; s3<Ns; s3++) {
@@ -183,18 +232,47 @@ int main (int argc, char ** argv)
     }}}}
   }
 
-  stop = usecond();
-  double time = (stop-start)/1000000.0;
+  /*///////////////
+  // Calculation //
+  // Measurement //
+  ///////////////*/
 
-  Grid.Barrier();
+  double timeComp[nLoops];
 
-  double sumTime;
-  MPI_Reduce(&time,&sumTime,1,MPI_DOUBLE,MPI_SUM,Grid.BossRank(),Grid.communicator);
-  int nProc = Grid.ProcessorCount();
-  time = sumTime/nProc;
+  for(int i=0; i<nLoops; i++) {
+    start = usecond();
+
+    for(int s1=0; s1<Ns; s1++) {
+    for(int s2=0; s2<Ns; s2++) {
+    for(int s3=0; s3<Ns; s3++) {
+    for(int s4=0; s4<Ns; s4++) {
+      tmp = colMat1[s1*Ns+s2] * colMat2[s3*Ns+s4];
+      mda[s1*Ns*Ns*Ns+s2*Ns*Ns+s3*Ns+s4] = trace(tmp);
+    }}}}
+
+    stop = usecond();
+    timeComp[i] = stop-start;
+  }
+
+  /*//////////////
+  // Evaluation //
+  //////////////*/
 
   unsigned long flopsPerLoop = (Nc*Nc*16+4)*Ns*Ns*Ns*Ns; // vol placed below
   double flops = flopsPerLoop/1000000000.0*vol*nLoops;
+
+  double tPrep, tPrepError, tComp, tCompError;
+  error(timePrep,nLoops,tPrep,tPrepError);
+  error(timeComp,nLoops,tComp,tCompError);
+
+  tPrep /= 1000000.0;
+  tPrepError /= 1000000.0;
+  tComp /= 1000000.0;
+  tCompError /= 1000000.0;
+
+  /*/////////////////
+  // Print results //
+  /////////////////*/
 
   if(Grid.IsBoss()) {
     std::cout << "mda[0] = " << mda[0]._odata[0] << std::endl; // check the result
@@ -202,13 +280,31 @@ int main (int argc, char ** argv)
     ofstream file;
     file.open(outFileName,ios::app);
     if(file.is_open()) {
+      double flopsPerSec = flops/tComp;
+      double flopsPerSecError = tCompError/tComp * flopsPerSec;
       file << nThreads << "\t" << latt_size[0] << latt_size[1] << latt_size[2] << latt_size[3] << "\t"
-           << vol << "\t" << time_prep << "\t" << time << "\t" << flops/time << std::endl;
+           << vol << "\t" << tPrep << "\t" << tPrepError << "\t" << tComp << "\t" << tCompError << "\t"
+           << flopsPerSec << "\t" << flopsPerSecError << std::endl;
       file.close();
     } else {
       std::cerr << "Unable to open file!" << std::endl;
     }
   }
+
+  /*///////////////
+  // Destructors //
+  ///////////////*/
+
+  for(int i=Ns*Ns-1; i>=0; i--) {
+    colMat1[i].~LatticeColourMatrix();
+    colMat2[i].~LatticeColourMatrix();
+  }
+  for(int i=Ns*Ns*Ns*Ns-1; i>=0; i--) {
+    mda[i].~LatticeComplex();
+  }
+  operator delete[]( raw_memory);
+  operator delete[]( raw_memory2);
+  operator delete[]( raw_memory3);
 
   Grid_finalize();
 }

@@ -4,7 +4,7 @@ Grid examples, www.github.com/fim16418/Grid
 
 Copyright (C) 2017
 
-Source code: mdaFull.cc
+Source code: mdaFull_icc.cc
 
 Author: Moritz Fink <fink.moritz@gmail.com>
 
@@ -47,25 +47,32 @@ using namespace std;
 using namespace Grid;
 using namespace Grid::QCD;
 
-//int nLoops;
+int nLoops;
 std::vector<int> latt_size(4);
 std::vector<int> mpi_layout(4);
 int nThreads;
 std::string outFileName;
 int nProps;
 
-double average(double* array, int len)
+
+void error(double* array, int len, double& average, double& error)
 {
-  double av = 0.0;
+  average = 0.0;
+  double square = 0.0;
+
   for(int i=0; i<len; i++) {
-    av += array[i];
+    average += array[i];
+    square += array[i]*array[i];
   }
-  return av/len;
+
+  average = average/len;
+  square = square/len;
+  error = std::sqrt(square - average*average);
 }
 
 bool processCmdLineArgs(int argc,char** argv)
 {
-  //nLoops = 1000;
+  nLoops = 1000;
   nThreads = omp_get_max_threads();
   outFileName = "output.txt";
   mpi_layout = {1,1,1,1};
@@ -74,14 +81,14 @@ bool processCmdLineArgs(int argc,char** argv)
 
   for(int i=1; i<argc; i++) {
     std::string option = std::string(argv[i]);
-    /*if(option == "--nLoops") {
+    if(option == "--nLoops") {
       if(i+1 < argc) {
         nLoops = atoi(argv[++i]);
       } else {
         std::cerr << "--nLoops option requires one argument." << std::endl;
         return false;
       }
-    } else */if(option == "--nThreads") {
+    } else if(option == "--nThreads") {
       if(i+1 < argc) {
         nThreads = atoi(argv[++i]);
         GridThread::SetThreads(nThreads);
@@ -125,7 +132,7 @@ bool processCmdLineArgs(int argc,char** argv)
       }
     }
   }
-  std::cout /*<< "Loops per measurement = " << nLoops << std::endl*/
+  std::cout << "Loops = " << nLoops << std::endl
             << "Threads = " << omp_get_max_threads() << std::endl
             << "Lattice = " << latt_size[0] << " " << latt_size[1] << " " << latt_size[2] << " " << latt_size[3] << std::endl
             << "Mpi Layout = " << mpi_layout[0] << " " << mpi_layout[1] << " " << mpi_layout[2] << " " << mpi_layout[3] << std::endl
@@ -138,7 +145,6 @@ namespace MDA {
 
   inline void derivative(const LatticePropagator& prop, const LatticeGaugeField& u, int dir, int len, LatticePropagator& ret)
   {
-    //ret = 0.5 * (Cshift(prop,dir,len) - Cshift(prop,dir,-len));
     LatticeColourMatrix u_mu = PeekIndex<LorentzIndex>(u,dir);
     LatticePropagator tmp = adj(u_mu)*prop;
     ret = u_mu*Cshift(prop,dir,len) - Cshift(tmp,dir,-len);
@@ -227,18 +233,24 @@ int main (int argc, char ** argv)
     return 1;
   }
 
+  /*//////////////////
+  // Initialization //
+  //////////////////*/
+
   std::vector<int> simd_layout = GridDefaultSimd(Nd,vComplex::Nsimd());
   GridCartesian    Grid(latt_size,simd_layout,mpi_layout);
 
   GridParallelRNG rng(&Grid);
-  //rng.SeedRandomDevice();
   rng.SeedFixedIntegers(std::vector<int>({1,2,3,4}));
-
-  int vol = latt_size[0]*latt_size[1]*latt_size[2]*latt_size[3];
 
   int derivativeLen = 1;
 
-  LatticePropagator props[nProps](&Grid);
+  //LatticePropagator props[nProps](&Grid);
+  // Work-around for LatticeColourMatrix colMat1[Ns*Ns](&Grid)
+  void* raw_memory = operator new[](nProps * sizeof(LatticePropagator(&Grid)));
+  LatticePropagator* props = static_cast<LatticePropagator*>( raw_memory );
+  for(int i=0; i<nProps; i++) new( &props[i] )LatticePropagator(&Grid);
+
   for(int i=0; i<nProps; i++) {
     random(rng,props[i]);
   }
@@ -249,92 +261,136 @@ int main (int argc, char ** argv)
   LatticePropagator dProp1(props[0]._grid);
   LatticePropagator dProp2(props[0]._grid);
 
-  LatticeComplex data1[Nc*Nc*Ns*Ns](props[0]._grid);
-  LatticeComplex data2[Nc*Nc*Ns*Ns](props[0]._grid);
+  // Work-around for LatticeComplex data1[Nc*Nc*Ns*Ns](props[0]._grid);
+  void* raw_memory2 = operator new[](Nc*Nc*Ns*Ns * sizeof(LatticeComplex(&Grid)));
+  LatticeComplex* data1 = static_cast<LatticeComplex*>( raw_memory2 );
+  for(int i=0; i<Nc*Nc*Ns*Ns; i++) new( &data1[i] )LatticeComplex(&Grid);
 
-  LatticeComplex resultBuffer[Ns*Ns*Ns*Ns](props[0]._grid);
+  // Work-around for LatticeComplex data2[Nc*Nc*Ns*Ns](props[0]._grid);
+  void* raw_memory3 = operator new[](Nc*Nc*Ns*Ns * sizeof(LatticeComplex(&Grid)));
+  LatticeComplex* data2 = static_cast<LatticeComplex*>( raw_memory3 );
+  for(int i=0; i<Nc*Nc*Ns*Ns; i++) new( &data2[i] )LatticeComplex(&Grid);
 
-  double timerStart = usecond();
+  // Work-around for LatticeComplex resultBuffer[Ns*Ns*Ns*Ns](props[0]._grid);
+  void* raw_memory4 = operator new[](Ns*Ns*Ns*Ns * sizeof(LatticeComplex(&Grid)));
+  LatticeComplex* resultBuffer = static_cast<LatticeComplex*>( raw_memory4 );
+  for(int i=0; i<Ns*Ns*Ns*Ns; i++) new( &resultBuffer[i] )LatticeComplex(&Grid);
 
-  for(int p1=0; p1<nProps; p1++) {
+  /*///////////////
+  // Calculation //
+  // Measurement //
+  ///////////////*/
 
-    const LatticePropagator& prop1 = props[p1];
+  double timerTime[nLoops];
+  double timerStart, timerStop;
 
-    for(int mu=0; mu<Nd; mu++) {
+  for(int i=0; i<nLoops; i++) {
+    timerStart = usecond();
 
-      MYNAMESPACE::derivative(prop1,U,mu,derivativeLen,dProp1);
+    for(int p1=0; p1<nProps; p1++) {
 
-      MYNAMESPACE::arrangeData(dProp1,data1);
+      const LatticePropagator& prop1 = props[p1];
 
-      for(int p2=0; p2<nProps; p2++) {
+      for(int mu=0; mu<Nd; mu++) {
 
-        const LatticePropagator& prop2 = props[p2];
-
-        MYNAMESPACE::arrangeData(prop2,data2);
-
-        MYNAMESPACE::mda(data1,data2,resultBuffer);
-
-      }
-
-      for(int nu=0; nu<Nd; nu++) {
-
-        if(mu == nu) continue;
-
-        MYNAMESPACE::derivative(dProp1,U,nu,derivativeLen,dProp2);
-
-        MYNAMESPACE::arrangeData(dProp2,data1);
+        MYNAMESPACE::derivative(prop1,U,mu,derivativeLen,dProp1);
+        MYNAMESPACE::arrangeData(dProp1,data1);
 
         for(int p2=0; p2<nProps; p2++) {
 
           const LatticePropagator& prop2 = props[p2];
 
           MYNAMESPACE::arrangeData(prop2,data2);
-
           MYNAMESPACE::mda(data1,data2,resultBuffer);
-
         }
-      }
-    }
-
-    for(int p2=0; p2<nProps; p2++) {
-
-      const LatticePropagator& prop2 = props[p2];
-
-      for(int mu=0; mu<Nd; mu++) {
-
-        MYNAMESPACE::derivative(prop1,U,mu,derivativeLen,dProp1);
-
-        MYNAMESPACE::arrangeData(dProp1,data1);
 
         for(int nu=0; nu<Nd; nu++) {
 
-          if(mu >= nu) continue;
+          if(mu == nu) continue;
 
-          MYNAMESPACE::derivative(prop2,U,nu,derivativeLen,dProp2);
+          MYNAMESPACE::derivative(dProp1,U,nu,derivativeLen,dProp2);
+          MYNAMESPACE::arrangeData(dProp2,data1);
 
-          MYNAMESPACE::arrangeData(dProp2,data2);
+          for(int p2=0; p2<nProps; p2++) {
 
-          MYNAMESPACE::mda(data1,data2,resultBuffer);
+            const LatticePropagator& prop2 = props[p2];
 
+            MYNAMESPACE::arrangeData(prop2,data2);
+            MYNAMESPACE::mda(data1,data2,resultBuffer);
+          }
+        }
+      }
+
+      for(int p2=0; p2<nProps; p2++) {
+
+        const LatticePropagator& prop2 = props[p2];
+
+        for(int mu=0; mu<Nd; mu++) {
+
+          MYNAMESPACE::derivative(prop1,U,mu,derivativeLen,dProp1);
+          MYNAMESPACE::arrangeData(dProp1,data1);
+
+          for(int nu=0; nu<Nd; nu++) {
+
+            if(mu >= nu) continue;
+
+            MYNAMESPACE::derivative(prop2,U,nu,derivativeLen,dProp2);
+            MYNAMESPACE::arrangeData(dProp2,data2);
+            MYNAMESPACE::mda(data1,data2,resultBuffer);
+          }
         }
       }
     }
+
+    timerStop = usecond();
+    timerTime[i] = timerStop - timerStart;
   }
 
-  double timerStop = usecond();
-  double timerTime = (timerStop - timerStart) / 1000000.0;
+  /*//////////////
+  // Evaluation //
+  //////////////*/
+
+  double time, timeError;
+  error(timerTime,nLoops,time,timeError);
+
+  time /= 1000000.0;
+  timeError /= 1000000.0;
+
+  /*/////////////////
+  // Print results //
+  /////////////////*/
 
   if(Grid.IsBoss()) {
     ofstream file;
     file.open(outFileName,ios::app);
     if(file.is_open()) {
+      int vol = latt_size[0]*latt_size[1]*latt_size[2]*latt_size[3];
       file << nThreads << "\t" << latt_size[0] << latt_size[1] << latt_size[2] << latt_size[3] << "\t"
-           << vol << "\t" << timerTime << std::endl;
+           << vol << "\t" << time << "\t" << timeError << std::endl;
       file.close();
     } else {
       std::cerr << "Unable to open file!" << std::endl;
     }
   }
+
+  /*///////////////
+  // Destructors //
+  ///////////////*/
+
+  for(int i=nProps-1; i>=0; i--) {
+    props[i].~LatticePropagator();
+  }
+  for(int i=Ns*Ns*Nc*Nc-1; i>=0; i--) {
+    data1[i].~LatticeComplex();
+    data2[i].~LatticeComplex();
+  }
+  for(int i=Ns*Ns*Ns*Ns-1; i>=0; i--) {
+    resultBuffer[i].~LatticeComplex();
+  }
+  operator delete[]( raw_memory );
+  operator delete[]( raw_memory2 );
+  operator delete[]( raw_memory3 );
+  operator delete[]( raw_memory4 );
 
   Grid_finalize();
 }

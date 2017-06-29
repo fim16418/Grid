@@ -39,13 +39,12 @@ See the full license in the file "LICENSE" in the top level distribution directo
 
 #include <Grid/Grid.h>
 
+#define WARM_UP 10
 
 using namespace std;
 using namespace Grid;
 using namespace Grid::QCD;
 
-
-int nData;
 int nLoops;
 std::vector<int> latt_size;
 std::vector<int> mpi_layout(4);
@@ -55,18 +54,23 @@ std::string outFileName;
 bool overlapComms = false;
 
 
-double average(double* array, int len)
+void error(double* array, int len, double& average, double& error)
 {
-  double av = 0.0;
+  average = 0.0;
+  double square = 0.0;
+
   for(int i=0; i<len; i++) {
-    av += array[i];
+    average += array[i];
+    square += array[i]*array[i];
   }
-  return av/len;
+
+  average = average/len;
+  square = square/len;
+  error = std::sqrt(square - average*average);
 }
 
 bool processCmdLineArgs(int argc, char ** argv)
 {
-  nData  = 1;
   nLoops = 1000;
   latt_size = {4,4,4,4};
   nThreads = omp_get_max_threads();
@@ -83,13 +87,6 @@ bool processCmdLineArgs(int argc, char ** argv)
         i+=4;
       } else {
         std::cerr << "--lattice x y z t must be the last option." << std::endl;
-        return false;
-      }
-    } else if(option == "--nData") {
-      if(i+1 < argc) {
-        nData = atoi(argv[++i]);
-      } else {
-        std::cerr << "--nData option requires one argument." << std::endl;
         return false;
       }
     } else if(option == "--nLoops") {
@@ -127,8 +124,7 @@ bool processCmdLineArgs(int argc, char ** argv)
       }
     }
     std::cout << "Lattice = " << latt_size[0] << " " << latt_size[1] << " " << latt_size[2] << " " << latt_size[3] << std::endl
-              << "Measurements = " << nData << std::endl
-              << "Loops per measurement = " << nLoops << std::endl
+              << "Loops = " << nLoops << std::endl
               << "Threads = " << omp_get_max_threads() << std::endl
               << "Mpi Layout = " << mpi_layout[0] << " " << mpi_layout[1] << " " << mpi_layout[2] << " " << mpi_layout[3] << std::endl
               << "Output file = " << outFileName << std::endl << std::endl;
@@ -149,8 +145,12 @@ bool processCmdLineArgs(int argc, char ** argv)
        return 1;
     }
 
+    /*//////////////////
+    // Initialization //
+    //////////////////*/
+
     std::vector<int> simd_layout = GridDefaultSimd(Nd,vComplex::Nsimd());
-    GridCartesian               Grid(latt_size,simd_layout,mpi_layout);
+    GridCartesian Grid(latt_size,simd_layout,mpi_layout);
 
     Gamma gamma5(Gamma::Algebra::Gamma5);
     LatticePropagator quark_propagator(&Grid);
@@ -166,40 +166,58 @@ bool processCmdLineArgs(int argc, char ** argv)
     LatticePropagator anti_quark = gamma5 * quark_propagator * gamma5;
     anti_quark = adj(anti_quark);
 
-    double timeData[nData];
+    /*///////////////
+    // Calculation //
+    //   Warm up   //
+    ///////////////*/
 
-    for(int j=0; j<nData; j++) {
-      double start = usecond();
-
-      for(int i=0; i<nLoops; i++) {
-        LatticeComplex corr_fn = trace(anti_quark * gamma5 * quark_propagator * gamma5);
-        //std::cout << corr_fn[0] << std::endl; break; //for test purposes
-      }
-
-      double stop = usecond();
-
-      timeData[j] = (stop-start)/1000000.0;
+    for(int i=0; i<WARM_UP; i++) {
+      LatticeComplex corr = trace(anti_quark * gamma5 * quark_propagator * gamma5);
     }
 
-    double time = average(timeData,nData);
+    /*///////////////
+    // Calculation //
+    // Measurement //
+    ///////////////*/
 
-    Grid.Barrier();
+    double timeData[nLoops];
 
-    double sumTime;
-    MPI_Reduce(&time,&sumTime,1,MPI_DOUBLE,MPI_SUM,Grid.BossRank(),Grid.communicator);
-    int nProc = Grid.ProcessorCount();
-    time = sumTime/nProc;
+    for(int i=0; i<nLoops; i++) {
+      double start = usecond();
+
+      LatticeComplex corr = trace(anti_quark * gamma5 * quark_propagator * gamma5);
+      //std::cout << corr[0] << std::endl; break; //for test purposes
+
+      double stop = usecond();
+      timeData[j] = stop-start;
+    }
+
+    /*//////////////
+    // Evaluation //
+    //////////////*/
+
+    double time, timeError;
+    error(timeData,nLoops,time,timeError);
+
+    time /= 1000000.0;
+    timeError /= 1000000.0;
 
     int vol = latt_size[0] * latt_size[1] * latt_size[2] * latt_size[3];
-    unsigned long flopsPerLoop = 2*30262;
+    unsigned long flopsPerLoop = 2 * (3*10080 + 22);
     double flops = flopsPerLoop/1000000000.0*vol*nLoops;
+
+    /*/////////////////
+    // Print results //
+    /////////////////*/
 
     if(Grid.IsBoss()) {
       ofstream file;
       file.open(outFileName,ios::app);
       if(file.is_open()) {
+        double flopsPerSec = flops/time;
+        double flopsPerSec_error = timeError/time * flopsPerSec;
         file << nThreads << "\t" << latt_size[0] << latt_size[1] << latt_size[2] << latt_size[3] << "\t"
-             << vol << "\t" << time << "\t" << flops/time << std::endl;
+             << vol << "\t" << time << "\t" << timeError << "\t" << flopsPerSec << "\t" << flopsPerSec_error << std::endl;
         file.close();
       } else {
           std::cerr << "Unable to open file!" << std::endl;
