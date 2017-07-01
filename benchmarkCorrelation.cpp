@@ -168,7 +168,7 @@ bool processCmdLineArgs(int argc, char ** argv)
     LatticePropagator anti_quark = gamma5 * quark_propagator * gamma5;
     anti_quark = adj(anti_quark);
 
-    LatticeComplex corr;
+    LatticeComplex corr(&Grid);
 
     /*///////////////
     // Calculation //
@@ -193,7 +193,7 @@ bool processCmdLineArgs(int argc, char ** argv)
       //std::cout << corr[0] << std::endl; break; //for test purposes
 
       double stop = usecond();
-      timeData[j] = stop-start;
+      timeData[i] = stop-start;
     }
 
     /*//////////////

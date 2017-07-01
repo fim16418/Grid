@@ -205,7 +205,7 @@ int main (int argc, char ** argv)
   LatticeColourMatrix gField = U[mu];
   LatticePropagator tmp(&Grid);
 
-  LatticeComplex corr;
+  LatticeComplex corr(&Grid);
 
   /*///////////////
   // Calculation //
@@ -232,7 +232,7 @@ int main (int argc, char ** argv)
     //std::cout << corr[0] << std::endl; break; //for test purposes
 
     double stop = usecond();
-    timeData[j] = stop-start;
+    timeData[i] = stop-start;
   }
 
   /*//////////////
