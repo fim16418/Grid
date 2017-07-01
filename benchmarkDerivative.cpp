@@ -247,7 +247,7 @@ int main (int argc, char ** argv)
 
   int vol = latt_size[0] * latt_size[1] * latt_size[2] * latt_size[3];
   unsigned long flopsPerLoop = 2 * (5*10080 + 22);
-  double flops = flopsPerLoop/1000000000.0*vol*nLoops;
+  double flops = flopsPerLoop/1000000000.0*vol;
 
   double flopsPerSec = flops/time;
   double flopsPerSec_error = timeError/time * flopsPerSec;

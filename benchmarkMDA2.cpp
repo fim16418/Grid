@@ -289,7 +289,7 @@ int main (int argc, char ** argv)
   //////////////*/
 
   unsigned long flopsPerLoop = (9*4+8*2)*Ns*Ns*Ns*Ns; // vol placed below
-  double flops = flopsPerLoop/1000000000.0*vol*nLoops;
+  double flops = flopsPerLoop/1000000000.0*vol;
 
   double tPrep, tPrepError, tComp, tCompError;
   error(timePrep,nLoops,tPrep,tPrepError);
