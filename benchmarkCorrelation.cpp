@@ -66,7 +66,9 @@ void error(double* array, int len, double& average, double& error)
 
   average = average/len;
   square = square/len;
+
   error = std::sqrt(square - average*average);
+  error /= std::sqrt(len);
 }
 
 bool processCmdLineArgs(int argc, char ** argv)
@@ -166,13 +168,15 @@ bool processCmdLineArgs(int argc, char ** argv)
     LatticePropagator anti_quark = gamma5 * quark_propagator * gamma5;
     anti_quark = adj(anti_quark);
 
+    LatticeComplex corr;
+
     /*///////////////
     // Calculation //
     //   Warm up   //
     ///////////////*/
 
     for(int i=0; i<WARM_UP; i++) {
-      LatticeComplex corr = trace(anti_quark * gamma5 * quark_propagator * gamma5);
+      corr = trace(anti_quark * gamma5 * quark_propagator * gamma5);
     }
 
     /*///////////////
@@ -185,7 +189,7 @@ bool processCmdLineArgs(int argc, char ** argv)
     for(int i=0; i<nLoops; i++) {
       double start = usecond();
 
-      LatticeComplex corr = trace(anti_quark * gamma5 * quark_propagator * gamma5);
+      corr = trace(anti_quark * gamma5 * quark_propagator * gamma5);
       //std::cout << corr[0] << std::endl; break; //for test purposes
 
       double stop = usecond();
@@ -206,6 +210,9 @@ bool processCmdLineArgs(int argc, char ** argv)
     unsigned long flopsPerLoop = 2 * (3*10080 + 22);
     double flops = flopsPerLoop/1000000000.0*vol*nLoops;
 
+    double flopsPerSec = flops/time;
+    double flopsPerSecError = timeError/time * flopsPerSec;
+
     /*/////////////////
     // Print results //
     /////////////////*/
@@ -214,10 +221,8 @@ bool processCmdLineArgs(int argc, char ** argv)
       ofstream file;
       file.open(outFileName,ios::app);
       if(file.is_open()) {
-        double flopsPerSec = flops/time;
-        double flopsPerSec_error = timeError/time * flopsPerSec;
         file << nThreads << "\t" << latt_size[0] << latt_size[1] << latt_size[2] << latt_size[3] << "\t"
-             << vol << "\t" << time << "\t" << timeError << "\t" << flopsPerSec << "\t" << flopsPerSec_error << std::endl;
+             << vol << "\t" << time << "\t" << timeError << "\t" << flopsPerSec << "\t" << flopsPerSecError << std::endl;
         file.close();
       } else {
           std::cerr << "Unable to open file!" << std::endl;

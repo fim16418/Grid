@@ -67,7 +67,9 @@ void error(double* array, int len, double& average, double& error)
 
   average = average/len;
   square = square/len;
+
   error = std::sqrt(square - average*average);
+  error /= std::sqrt(len);
 }
 
 bool processCmdLineArgs(int argc,char** argv)

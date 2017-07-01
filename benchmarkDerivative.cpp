@@ -68,7 +68,9 @@ void error(double* array, int len, double& average, double& error)
 
   average = average/len;
   square = square/len;
+
   error = std::sqrt(square - average*average);
+  error /= std::sqrt(len);
 }
 
 bool processCmdLineArgs(int argc, char ** argv)
@@ -203,6 +205,8 @@ int main (int argc, char ** argv)
   LatticeColourMatrix gField = U[mu];
   LatticePropagator tmp(&Grid);
 
+  LatticeComplex corr;
+
   /*///////////////
   // Calculation //
   //   Warm up   //
@@ -210,7 +214,7 @@ int main (int argc, char ** argv)
 
   for(int i=0; i<WARM_UP; i++) {
     tmp = adj(gField) * quark_propagator;
-    LatticeComplex corr = trace(anti_quark * gamma5 * (gField*Cshift(quark_propagator,mu,length) - Cshift(tmp,mu,-length))*gamma5);
+    corr = trace(anti_quark * gamma5 * (gField*Cshift(quark_propagator,mu,length) - Cshift(tmp,mu,-length))*gamma5);
   }
 
   /*///////////////
@@ -224,7 +228,7 @@ int main (int argc, char ** argv)
     double start = usecond();
 
     tmp = adj(gField) * quark_propagator;
-    LatticeComplex corr = trace(anti_quark * gamma5 * (gField*Cshift(quark_propagator,mu,length) - Cshift(tmp,mu,-length))*gamma5);
+    corr = trace(anti_quark * gamma5 * (gField*Cshift(quark_propagator,mu,length) - Cshift(tmp,mu,-length))*gamma5);
     //std::cout << corr[0] << std::endl; break; //for test purposes
 
     double stop = usecond();
@@ -245,6 +249,9 @@ int main (int argc, char ** argv)
   unsigned long flopsPerLoop = 2 * (5*10080 + 22);
   double flops = flopsPerLoop/1000000000.0*vol*nLoops;
 
+  double flopsPerSec = flops/time;
+  double flopsPerSec_error = timeError/time * flopsPerSec;
+
   /*/////////////////
   // Print results //
   /////////////////*/
@@ -253,8 +260,6 @@ int main (int argc, char ** argv)
     ofstream file;
     file.open(outFileName,ios::app);
     if(file.is_open()) {
-      double flopsPerSec = flops/time;
-      double flopsPerSec_error = timeError/time * flopsPerSec;
       file << nThreads << "\t" << latt_size[0] << latt_size[1] << latt_size[2] << latt_size[3] << "\t"
            << vol << "\t" << time << "\t" << timeError << "\t" << flopsPerSec << "\t" << flopsPerSec_error << std::endl;
       file.close();

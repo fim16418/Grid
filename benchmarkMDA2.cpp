@@ -66,7 +66,9 @@ void error(double* array, int len, double& average, double& error)
 
   average = average/len;
   square = square/len;
+
   error = std::sqrt(square - average*average);
+  error /= std::sqrt(len);
 }
 
 bool processCmdLineArgs(int argc,char** argv)
@@ -298,6 +300,9 @@ int main (int argc, char ** argv)
   tComp /= 1000000.0;
   tCompError /= 1000000.0;
 
+  double flopsPerSec = flops/tComp;
+  double flopsPerSecError = tCompError/tComp * flopsPerSec;
+
   /*/////////////////
   // Print results //
   /////////////////*/
@@ -308,8 +313,6 @@ int main (int argc, char ** argv)
     ofstream file;
     file.open(outFileName,ios::app);
     if(file.is_open()) {
-      double flopsPerSec = flops/tComp;
-      double flopsPerSecError = tCompError/tComp * flopsPerSec;
       file << nThreads << "\t" << latt_size[0] << latt_size[1] << latt_size[2] << latt_size[3] << "\t"
            << vol << "\t" << tPrep << "\t" << tPrepError << "\t" << tComp << "\t" << tCompError << "\t"
            << flopsPerSec << "\t" << flopsPerSecError << std::endl;
