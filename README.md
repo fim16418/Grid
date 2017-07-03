@@ -24,7 +24,7 @@ This file is a modified version of the Benchmark_su3.cc file from the Grid repos
 In order to run the benchmarks for various lattice sizes and other parameters, this bash script can be modified and executed.
 
 ### benchmarkMDA[x].cpp
-Those benchmarks aim to test different ways of calculating the Meson Distribution Amplitude (MDA) with Grid. Choose the icc files if you use the Intel compiler.
+Those benchmarks aim to test different ways of calculating the Meson Distribution Amplitude (MDA) with Grid.
 
 ### mdaFull.cpp
-Implementation of an efficient algorithm for computing the MDA of propagator combinations involving their derivatives. Choose the icc files if you use the Intel compiler.
+Implementation of an efficient algorithm for computing the MDA of propagator combinations involving their derivatives.
