@@ -20,6 +20,9 @@ Those programs serve as benchmarks for Grid's performance while computing the co
 ### Benchmark_su3.cpp
 This file is a modified version of the Benchmark_su3.cc file from the Grid repository. Command line arguments where added to make it more comfortable to use (e.g. with bash scripts).
 
+### BenchmarkSu3.cpp
+Same as benchmarkCorrelation but only featuring a LatticePropagator x LatticePropagator multiplication.
+
 ### loop.sh & slurm.sh
 In order to run the benchmarks for various lattice sizes and other parameters, this bash script can be modified and executed.
 
