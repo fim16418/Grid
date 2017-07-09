@@ -157,7 +157,7 @@ bool processCmdLineArgs(int argc, char ** argv)
     LatticePropagator prop1(&Grid);
     LatticePropagator prop2(&Grid);
 
-    for(int i0=0; i0<quark_propagator._odata.size(); i0++) {
+    for(int i0=0; i0<prop1._odata.size(); i0++) {
     for(int i1=0; i1<Ns; i1++) {
     for(int i2=0; i2<Ns; i2++) {
     for(int i3=0; i3<Nc; i3++) {
