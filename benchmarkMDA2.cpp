@@ -170,20 +170,10 @@ int main (int argc, char ** argv)
   LatticeSpinMatrix sMat1(&Grid);
   LatticeSpinMatrix sMat2(&Grid);
 
-  // Work-around for LatticeComplex mda[Ns*Ns*Ns*Ns](&Grid)
-  void* raw_memory = operator new[](Ns*Ns*Ns*Ns * sizeof(LatticeComplex(&Grid)));
-  LatticeComplex* mda = static_cast<LatticeComplex*>( raw_memory );
-  for(int i=0; i<Ns*Ns*Ns*Ns; i++) new( &mda[i] )LatticeComplex(&Grid);
+  LatticeComplex mda[Ns*Ns*Ns*Ns](&Grid)
 
-  // Work-around for LatticeComplex a[Ns*Ns*Nc*Nc](&Grid)
-  void* raw_memory2 = operator new[](Ns*Ns*Nc*Nc * sizeof(LatticeComplex(&Grid)));
-  LatticeComplex* a = static_cast<LatticeComplex*>( raw_memory2 );
-  for(int i=0; i<Ns*Ns*Nc*Nc; i++) new( &a[i] )LatticeComplex(&Grid);
-
-  // Work-around for LatticeComplex b[Ns*Ns*Nc*Nc](&Grid)
-  void* raw_memory3 = operator new[](Ns*Ns*Nc*Nc * sizeof(LatticeComplex(&Grid)));
-  LatticeComplex* b = static_cast<LatticeComplex*>( raw_memory3 );
-  for(int i=0; i<Ns*Ns*Nc*Nc; i++) new( &b[i] )LatticeComplex(&Grid);
+  LatticeComplex a[Ns*Ns*Nc*Nc](&Grid)
+  LatticeComplex b[Ns*Ns*Nc*Nc](&Grid)
 
   /*///////////////
   // Preparation //
@@ -321,21 +311,6 @@ int main (int argc, char ** argv)
       std::cerr << "Unable to open file!" << std::endl;
     }
   }
-
-  /*///////////////
-  // Destructors //
-  ///////////////*/
-
-  for(int i=Ns*Ns*Ns*Ns-1; i>=0; i--) {
-    mda[i].~LatticeComplex();
-  }
-  for(int i=Ns*Ns*Nc*Nc-1; i>=0; i--) {
-    a[i].~LatticeComplex();
-    b[i].~LatticeComplex();
-  }
-  operator delete[]( raw_memory );
-  operator delete[]( raw_memory2 );
-  operator delete[]( raw_memory3 );
 
   Grid_finalize();
 }
