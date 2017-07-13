@@ -168,12 +168,22 @@ int main (int argc, char ** argv)
     p2._odata[x]._internal._internal[s1][s2]._internal[c1][c2] = x*10000 + s1*1000 + s2*100 + c1*10 + c2;
   }}}}}
 
-  LatticeColourMatrix colMat1[Ns*Ns](&Grid);
-  LatticeColourMatrix colMat2[Ns*Ns](&Grid);
+  // Work-around for LatticeColourMatrix colMat1[Ns*Ns](&Grid)
+  void* raw_memory = operator new[](Ns*Ns * sizeof(LatticeColourMatrix(&Grid)));
+  LatticeColourMatrix* colMat1 = static_cast<LatticeColourMatrix*>( raw_memory );
+  for(int i=0; i<Ns*Ns; i++) new( &colMat1[i] )LatticeColourMatrix(&Grid);
+
+  // Work-around for LatticeColourMatrix colMat2[Ns*Ns](&Grid)
+  void* raw_memory2 = operator new[](Ns*Ns * sizeof(LatticeColourMatrix(&Grid)));
+  LatticeColourMatrix* colMat2 = static_cast<LatticeColourMatrix*>( raw_memory2 );
+  for(int i=0; i<Ns*Ns; i++) new( &colMat2[i] )LatticeColourMatrix(&Grid);
 
   LatticeColourMatrix tmp(&Grid);
 
-  LatticeComplex mda[Ns*Ns*Ns*Ns](&Grid);
+  // Work-around for LatticeComplex mda[Ns*Ns*Ns*Ns](&Grid)
+  void* raw_memory3 = operator new[](Ns*Ns*Ns*Ns * sizeof(LatticeComplex(&Grid)));
+  LatticeComplex* mda = static_cast<LatticeComplex*>( raw_memory3 );
+  for(int i=0; i<Ns*Ns*Ns*Ns; i++) new( &mda[i] )LatticeComplex(&Grid);
 
   /*///////////////
   // Preparation //
@@ -283,6 +293,21 @@ int main (int argc, char ** argv)
       std::cerr << "Unable to open file!" << std::endl;
     }
   }
+  
+  /*///////////////
+  // Destructors //
+  ///////////////*/
+
+  for(int i=Ns*Ns-1; i>=0; i--) {
+    colMat1[i].~LatticeColourMatrix();
+    colMat2[i].~LatticeColourMatrix();
+  }
+  for(int i=Ns*Ns*Ns*Ns-1; i>=0; i--) {
+    mda[i].~LatticeComplex();
+  }
+  operator delete[]( raw_memory);
+  operator delete[]( raw_memory2);
+  operator delete[]( raw_memory3);
 
   Grid_finalize();
 }
