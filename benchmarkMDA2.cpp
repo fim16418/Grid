@@ -170,10 +170,10 @@ int main (int argc, char ** argv)
   LatticeSpinMatrix sMat1(&Grid);
   LatticeSpinMatrix sMat2(&Grid);
 
-  LatticeComplex mda[Ns*Ns*Ns*Ns](&Grid)
+  LatticeComplex mda[Ns*Ns*Ns*Ns](&Grid);
 
-  LatticeComplex a[Ns*Ns*Nc*Nc](&Grid)
-  LatticeComplex b[Ns*Ns*Nc*Nc](&Grid)
+  LatticeComplex a[Ns*Ns*Nc*Nc](&Grid);
+  LatticeComplex b[Ns*Ns*Nc*Nc](&Grid);
 
   /*///////////////
   // Preparation //
