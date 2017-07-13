@@ -168,12 +168,12 @@ int main (int argc, char ** argv)
     p2._odata[x]._internal._internal[s1][s2]._internal[c1][c2] = x*10000 + s1*1000 + s2*100 + c1*10 + c2;
   }}}}}
 
-  LatticeColourMatrix colMat1[Ns*Ns](&Grid)
-  LatticeColourMatrix colMat2[Ns*Ns](&Grid)
+  LatticeColourMatrix colMat1[Ns*Ns](&Grid);
+  LatticeColourMatrix colMat2[Ns*Ns](&Grid);
 
   LatticeColourMatrix tmp(&Grid);
 
-  LatticeComplex mda[Ns*Ns*Ns*Ns](&Grid)
+  LatticeComplex mda[Ns*Ns*Ns*Ns](&Grid);
 
   /*///////////////
   // Preparation //
