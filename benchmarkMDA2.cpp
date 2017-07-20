@@ -136,12 +136,11 @@ bool processCmdLineArgs(int argc,char** argv)
 
 int main (int argc, char ** argv)
 {
-  Grid_init(&argc,&argv);
-
   if(!processCmdLineArgs(argc,argv)) {
-    Grid_finalize();
     return 1;
   }
+  
+  Grid_init(&argc,&argv);
 
   /*//////////////////
   // Initialization //
@@ -313,7 +312,7 @@ int main (int argc, char ** argv)
     ofstream file;
     file.open(outFileName,ios::app);
     if(file.is_open()) {
-      file << nThreads << "\t" << latt_size[0] << latt_size[1] << latt_size[2] << latt_size[3] << "\t"
+      file << omp_get_max_threads() << "\t" << latt_size[0] << latt_size[1] << latt_size[2] << latt_size[3] << "\t"
            << vol << "\t" << tPrep << "\t" << tPrepError << "\t" << tComp << "\t" << tCompError << "\t"
            << flopsPerSec << "\t" << flopsPerSecError << std::endl;
       file.close();
