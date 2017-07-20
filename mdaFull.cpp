@@ -228,12 +228,11 @@ namespace TIMING {
 
 int main (int argc, char ** argv)
 {
-  Grid_init(&argc,&argv);
-
   if(!processCmdLineArgs(argc,argv)) {
-    Grid_finalize();
     return 1;
   }
+  
+  Grid_init(&argc,&argv);
 
   /*//////////////////
   // Initialization //
@@ -366,7 +365,7 @@ int main (int argc, char ** argv)
     file.open(outFileName,ios::app);
     if(file.is_open()) {
       int vol = latt_size[0]*latt_size[1]*latt_size[2]*latt_size[3];
-      file << nThreads << "\t" << latt_size[0] << latt_size[1] << latt_size[2] << latt_size[3] << "\t"
+      file << omp_get_max_threads() << "\t" << latt_size[0] << latt_size[1] << latt_size[2] << latt_size[3] << "\t"
            << vol << "\t" << time << "\t" << timeError << std::endl;
       file.close();
     } else {
