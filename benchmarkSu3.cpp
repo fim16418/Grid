@@ -204,7 +204,7 @@ bool processCmdLineArgs(int argc, char ** argv)
     timeError /= 1000000.0;
 
     int vol = latt_size[0] * latt_size[1] * latt_size[2] * latt_size[3];
-    unsigned long flopsPerLoop = 2 * (10080 + 22);
+    unsigned long flopsPerLoop = 10080 + 22;
     double flops = flopsPerLoop/1000000000.0*vol;
 
     double flopsPerSec = flops/time;
