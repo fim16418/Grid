@@ -257,6 +257,8 @@ int main (int argc, char ** argv)
 
   LatticeGaugeField U(&Grid);
   random(rng,U);
+  
+  Gamma gamma5(Gamma::Algebra::Gamma5);
 
   LatticePropagator dProp1(props[0]._grid);
   LatticePropagator dProp2(props[0]._grid);
@@ -300,7 +302,7 @@ int main (int argc, char ** argv)
 
           const LatticePropagator& prop2 = props[p2];
 
-          MYNAMESPACE::arrangeData(prop2,data2);
+          MYNAMESPACE::arrangeData(gamma5*adj(prop2)*gamma5,data2);
           MYNAMESPACE::mda(data1,data2,resultBuffer);
         }
 
@@ -315,7 +317,7 @@ int main (int argc, char ** argv)
 
             const LatticePropagator& prop2 = props[p2];
 
-            MYNAMESPACE::arrangeData(prop2,data2);
+            MYNAMESPACE::arrangeData(gamma5*adj(prop2)*gamma5,data2);
             MYNAMESPACE::mda(data1,data2,resultBuffer);
           }
         }
@@ -335,7 +337,7 @@ int main (int argc, char ** argv)
             if(mu >= nu) continue;
 
             MYNAMESPACE::derivative(prop2,U,nu,derivativeLen,dProp2);
-            MYNAMESPACE::arrangeData(dProp2,data2);
+            MYNAMESPACE::arrangeData(gamma5*adj(dProp2)*gamma5,data2);
             MYNAMESPACE::mda(data1,data2,resultBuffer);
           }
         }
