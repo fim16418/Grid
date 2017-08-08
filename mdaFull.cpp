@@ -4,7 +4,7 @@ Grid examples, www.github.com/fim16418/Grid
 
 Copyright (C) 2017
 
-Source code: mdaFull_icc.cc
+Source code: mdaFull.cc
 
 Author: Moritz Fink <fink.moritz@gmail.com>
 
@@ -169,6 +169,7 @@ namespace MDA {
 
   inline void mda(LatticeComplex* a, LatticeComplex* b, LatticeComplex* ret)
   {
+  #pragma omp parallel for collapse(4)
     for(int s1=0; s1<Ns; s1++) {
     for(int s2=0; s2<Ns; s2++) {
     for(int s3=0; s3<Ns; s3++) {
