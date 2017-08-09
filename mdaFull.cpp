@@ -156,7 +156,8 @@ namespace MDA {
   {
     if(adj) {
       Gamma gamma5(Gamma::Algebra::Gamma5);
-      arrangeData(gamma5*adj(prop)*gamma5,data,false);
+      LatticePropagator adjProp = gamma5*adj(prop)*gamma5;
+      arrangeData(adjProp,data,false);
     } else {
       LatticeSpinMatrix sMat(prop._grid);
 
