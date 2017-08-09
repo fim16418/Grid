@@ -4,7 +4,7 @@ Grid examples, www.github.com/fim16418/Grid
 
 Copyright (C) 2017
 
-Source code: mdaFull_icc.cc
+Source code: mdaFull.cc
 
 Author: Moritz Fink <fink.moritz@gmail.com>
 
@@ -152,23 +152,29 @@ namespace MDA {
     ret = u_mu*Cshift(prop,dir,len) - Cshift(tmp,dir,-len);
   }
 
-  inline void arrangeData(const LatticePropagator& prop, LatticeComplex* data)
+  inline void arrangeData(const LatticePropagator& prop, LatticeComplex* data, bool adj)
   {
-    LatticeSpinMatrix sMat(prop._grid);
+    if(adj) {
+      Gamma gamma5(Gamma::Algebra::Gamma5);
+      arrangeData(gamma5*adj(prop)*gamma5,data,false);
+    } else {
+      LatticeSpinMatrix sMat(prop._grid);
 
-    for(int c1=0; c1<Nc; c1++) {
-    for(int c2=0; c2<Nc; c2++) {
-      sMat = peekColour(prop,c1,c2);
+      for(int c1=0; c1<Nc; c1++) {
+      for(int c2=0; c2<Nc; c2++) {
+        sMat = peekColour(prop,c1,c2);
 
-      for(int s1=0; s1<Ns; s1++) {
-      for(int s2=0; s2<Ns; s2++) {
-        data[c1*Nc*Ns*Ns+c2*Ns*Ns+s1*Ns+s2] = peekSpin(sMat,s1,s2);
+        for(int s1=0; s1<Ns; s1++) {
+        for(int s2=0; s2<Ns; s2++) {
+          data[c1*Nc*Ns*Ns+c2*Ns*Ns+s1*Ns+s2] = peekSpin(sMat,s1,s2);
+        }}
       }}
-    }}
+    }
   }
 
   inline void mda(LatticeComplex* a, LatticeComplex* b, LatticeComplex* ret)
   {
+  #pragma omp parallel for collapse(4)
     for(int s1=0; s1<Ns; s1++) {
     for(int s2=0; s2<Ns; s2++) {
     for(int s3=0; s3<Ns; s3++) {
@@ -257,8 +263,6 @@ int main (int argc, char ** argv)
 
   LatticeGaugeField U(&Grid);
   random(rng,U);
-  
-  Gamma gamma5(Gamma::Algebra::Gamma5);
 
   LatticePropagator dProp1(props[0]._grid);
   LatticePropagator dProp2(props[0]._grid);
@@ -296,13 +300,13 @@ int main (int argc, char ** argv)
       for(int mu=0; mu<Nd; mu++) {
 
         MYNAMESPACE::derivative(prop1,U,mu,derivativeLen,dProp1);
-        MYNAMESPACE::arrangeData(dProp1,data1);
+        MYNAMESPACE::arrangeData(dProp1,data1,false);
 
         for(int p2=0; p2<nProps; p2++) {
 
           const LatticePropagator& prop2 = props[p2];
 
-          MYNAMESPACE::arrangeData(gamma5*adj(prop2)*gamma5,data2);
+          MYNAMESPACE::arrangeData(prop2,data2,true);
           MYNAMESPACE::mda(data1,data2,resultBuffer);
         }
 
@@ -311,13 +315,13 @@ int main (int argc, char ** argv)
           if(mu == nu) continue;
 
           MYNAMESPACE::derivative(dProp1,U,nu,derivativeLen,dProp2);
-          MYNAMESPACE::arrangeData(dProp2,data1);
+          MYNAMESPACE::arrangeData(dProp2,data1,false);
 
           for(int p2=0; p2<nProps; p2++) {
 
             const LatticePropagator& prop2 = props[p2];
 
-            MYNAMESPACE::arrangeData(gamma5*adj(prop2)*gamma5,data2);
+            MYNAMESPACE::arrangeData(prop2,data2,true);
             MYNAMESPACE::mda(data1,data2,resultBuffer);
           }
         }
@@ -330,14 +334,14 @@ int main (int argc, char ** argv)
         for(int mu=0; mu<Nd; mu++) {
 
           MYNAMESPACE::derivative(prop1,U,mu,derivativeLen,dProp1);
-          MYNAMESPACE::arrangeData(dProp1,data1);
+          MYNAMESPACE::arrangeData(dProp1,data1,false);
 
           for(int nu=0; nu<Nd; nu++) {
 
             if(mu >= nu) continue;
 
             MYNAMESPACE::derivative(prop2,U,nu,derivativeLen,dProp2);
-            MYNAMESPACE::arrangeData(gamma5*adj(dProp2)*gamma5,data2);
+            MYNAMESPACE::arrangeData(dProp2,data2,true);
             MYNAMESPACE::mda(data1,data2,resultBuffer);
           }
         }
