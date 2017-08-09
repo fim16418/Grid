@@ -152,12 +152,11 @@ namespace MDA {
     ret = u_mu*Cshift(prop,dir,len) - Cshift(tmp,dir,-len);
   }
 
-  inline void arrangeData(const LatticePropagator& prop, LatticeComplex* data, bool adj)
+  inline void arrangeData(const LatticePropagator& prop, LatticeComplex* data, bool gamma)
   {
-    if(adj) {
+    if(gamma) {
       Gamma gamma5(Gamma::Algebra::Gamma5);
-      LatticePropagator adjProp = gamma5*adj(prop)*gamma5;
-      arrangeData(adjProp,data,false);
+      arrangeData(gamma5*adj(prop)*gamma5,data,false);
     } else {
       LatticeSpinMatrix sMat(prop._grid);
 
@@ -208,11 +207,11 @@ namespace TIMING {
               << (stop - start)/1000000.0 << " secs" << std::endl;
   }
 
-  inline void arrangeData(const LatticePropagator& prop, LatticeComplex* data, bool adj)
+  inline void arrangeData(const LatticePropagator& prop, LatticeComplex* data, bool gamma)
   {
     double start = usecond();
 
-    MDA::arrangeData(prop,data,adj);
+    MDA::arrangeData(prop,data,gamma);
 
     double stop = usecond();
     std::cout << std::endl << "arrangement time = "
