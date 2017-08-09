@@ -207,11 +207,11 @@ namespace TIMING {
               << (stop - start)/1000000.0 << " secs" << std::endl;
   }
 
-  inline void arrangeData(const LatticePropagator& prop, LatticeComplex* data)
+  inline void arrangeData(const LatticePropagator& prop, LatticeComplex* data, bool adj)
   {
     double start = usecond();
 
-    MDA::arrangeData(prop,data);
+    MDA::arrangeData(prop,data,adj);
 
     double stop = usecond();
     std::cout << std::endl << "arrangement time = "
