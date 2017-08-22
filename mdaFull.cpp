@@ -149,7 +149,7 @@ namespace MDA {
   {
     LatticeColourMatrix u_mu = PeekIndex<LorentzIndex>(u,dir);
     LatticePropagator tmp = adj(u_mu)*prop;
-    ret = u_mu*Cshift(prop,dir,len) - Cshift(tmp,dir,-len);
+    ret = 0.5 * ( u_mu*Cshift(prop,dir,len) - Cshift(tmp,dir,-len) );
   }
 
   inline void arrangeData(const LatticePropagator& prop, LatticeComplex* data, bool gamma)
